@@ -10,6 +10,7 @@ import 'package:uas/pages/settings_page.dart';
 import 'package:uas/repositories/finance_repository.dart';
 import 'package:uas/services/notification_service.dart';
 import 'package:uas/services/preferences_service.dart';
+import 'package:uas/theme/app_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -60,10 +61,7 @@ class _MyAppState extends State<MyApp> {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2E7D32)),
-          useMaterial3: true,
-        ),
+        theme: buildAppTheme(dark: prefs.theme == 'dark'),
         home: _ready ? const HomeShell() : const _LoadingScreen(),
       ),
     );

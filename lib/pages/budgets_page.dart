@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uas/models/budget.dart';
 import 'package:uas/repositories/finance_repository.dart';
+import 'package:uas/pages/budget_form_page.dart';
+import 'package:uas/theme/app_theme.dart';
 
 /// Halaman Anggaran
 class BudgetsPage extends StatefulWidget {
@@ -165,9 +167,9 @@ class _BudgetsPageState extends State<BudgetsPage> {
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView.separated(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           itemCount: _budgets.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
           itemBuilder: (ctx, i) {
             final b = _budgets[i];
             final periodStr = {
@@ -176,17 +178,53 @@ class _BudgetsPageState extends State<BudgetsPage> {
               BudgetPeriod.monthly: 'Bulanan',
             }[b.period]!;
             return Card(
-              child: ListTile(
-                title: Text('${b.name} • $periodStr'),
-                subtitle: Text('Mulai: ${DateFormat('dd MMM yyyy', 'id_ID').format(b.startDate)}' + (b.endDate == null ? '' : '\nSelesai: ${DateFormat('dd MMM yyyy', 'id_ID').format(b.endDate!)}')),
-                trailing: Text(fmt.format(b.amount), style: const TextStyle(fontWeight: FontWeight.bold)),
-                onLongPress: b.id == null ? null : () => _delete(b.id!),
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('${b.name} • $periodStr',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            'Mulai: ${DateFormat('dd MMM yyyy', 'id_ID').format(b.startDate)}' +
+                                (b.endDate == null ? '' : '\nSelesai: ${DateFormat('dd MMM yyyy', 'id_ID').format(b.endDate!)}'),
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Text(
+                      fmt.format(b.amount),
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),
+                    ),
+                    IconButton(
+                      tooltip: 'Hapus',
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: b.id == null ? null : () => _delete(b.id!),
+                    ),
+                  ],
+                ),
               ),
             );
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton(onPressed: _addBudgetDialog, child: const Icon(Icons.add)),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final created = await Navigator.of(context)
+              .push(MaterialPageRoute(builder: (_) => const BudgetFormPage()));
+          if (created == true) await _load();
+        },
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }

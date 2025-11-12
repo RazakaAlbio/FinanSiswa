@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uas/models/saving_goal.dart';
 import 'package:uas/repositories/finance_repository.dart';
+import 'package:uas/pages/savings_form_page.dart';
+import 'package:uas/theme/app_theme.dart';
 
 /// Halaman Target Tabungan
 class SavingsPage extends StatefulWidget {
@@ -145,31 +147,33 @@ class _SavingsPageState extends State<SavingsPage> {
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView.separated(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           itemCount: _goals.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
           itemBuilder: (ctx, i) {
             final g = _goals[i];
             return Card(
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppSpacing.lg),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(g.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        Text(g.name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
                         if (g.id != null)
                           IconButton(onPressed: () => _delete(g.id!), icon: const Icon(Icons.delete_outline)),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: AppSpacing.sm),
                     LinearProgressIndicator(value: g.progress, minHeight: 10),
-                    const SizedBox(height: 6),
-                    Text('${fmt.format(g.savedAmount)} / ${fmt.format(g.targetAmount)}'),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text('${fmt.format(g.savedAmount)} / ${fmt.format(g.targetAmount)}',
+                        style: Theme.of(context).textTheme.bodyMedium),
                     if (g.deadline != null)
-                      Text('Target: ${DateFormat('dd MMM yyyy', 'id_ID').format(g.deadline!)}', style: const TextStyle(color: Colors.black54)),
+                      Text('Target: ${DateFormat('dd MMM yyyy', 'id_ID').format(g.deadline!)}',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54)),
                   ],
                 ),
               ),
@@ -177,7 +181,14 @@ class _SavingsPageState extends State<SavingsPage> {
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton(onPressed: _addGoalDialog, child: const Icon(Icons.add)),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final created = await Navigator.of(context)
+              .push(MaterialPageRoute(builder: (_) => const SavingsFormPage()));
+          if (created == true) await _load();
+        },
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }
