@@ -21,15 +21,15 @@ ThemeData buildAppTheme({bool dark = false}) {
   );
   return base.copyWith(
     colorScheme: colorScheme,
-    scaffoldBackgroundColor: AppColors.bg,
+    scaffoldBackgroundColor: dark ? colorScheme.background : AppColors.bg,
     textTheme: textTheme,
     appBarTheme: AppBarTheme(
-      backgroundColor: AppColors.surface,
-      foregroundColor: AppColors.textPrimary,
+      backgroundColor: dark ? colorScheme.surface : AppColors.surface,
+      foregroundColor: dark ? colorScheme.onSurface : AppColors.textPrimary,
       elevation: 0,
       titleTextStyle: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
     ),
-    cardTheme: const CardThemeData(color: AppColors.surface, elevation: 0, margin: EdgeInsets.zero),
+    cardTheme: CardThemeData(color: dark ? colorScheme.surface : AppColors.surface, elevation: 0, margin: EdgeInsets.zero),
     dividerColor: AppColors.textSecondary.withOpacity(0.12),
   );
 }

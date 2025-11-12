@@ -15,7 +15,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   late PreferencesService prefs;
   String _currency = 'IDR';
-  String _theme = 'light';
+  String _theme = 'system';
 
   @override
   void initState() {
@@ -68,10 +68,17 @@ class _SettingsPageState extends State<SettingsPage> {
           const Divider(),
           ListTile(
             title: const Text('Tema'),
-            subtitle: Text(_theme == 'light' ? 'Terang' : 'Gelap'),
+            subtitle: Text(
+              switch (_theme) {
+                'light' => 'Terang',
+                'dark' => 'Gelap',
+                _ => 'Ikuti sistem',
+              },
+            ),
             trailing: DropdownButton<String>(
               value: _theme,
               items: const [
+                DropdownMenuItem(value: 'system', child: Text('Ikuti sistem')),
                 DropdownMenuItem(value: 'light', child: Text('Terang')),
                 DropdownMenuItem(value: 'dark', child: Text('Gelap')),
               ],

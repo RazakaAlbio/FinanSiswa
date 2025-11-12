@@ -1,7 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Layanan untuk menyimpan preferensi pengguna
-class PreferencesService {
+class PreferencesService extends ChangeNotifier {
   static const _keyCurrency = 'pref_currency';
   static const _keyLocale = 'pref_locale';
   static const _keyTheme = 'pref_theme'; // 'light' | 'dark'
@@ -23,8 +24,12 @@ class PreferencesService {
   Future<void> setLocale(String value) => _prefs.setString(_keyLocale, value);
 
   // Tema
-  String get theme => _prefs.getString(_keyTheme) ?? 'light';
-  Future<void> setTheme(String value) => _prefs.setString(_keyTheme, value);
+  // 'light' | 'dark' | 'system'
+  String get theme => _prefs.getString(_keyTheme) ?? 'system';
+  Future<void> setTheme(String value) async {
+    await _prefs.setString(_keyTheme, value);
+    notifyListeners();
+  }
 
   // First launch
   bool get isFirstLaunch => _prefs.getBool(_keyFirstLaunch) ?? true;

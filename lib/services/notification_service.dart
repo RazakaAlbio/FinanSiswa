@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -35,17 +36,54 @@ class NotificationService {
     const darwinDetails = DarwinNotificationDetails();
     final details = NotificationDetails(android: androidDetails, iOS: darwinDetails, macOS: darwinDetails);
 
-    final tzDateTime = tz.TZDateTime.from(r.dueDate, tz.local);
-    await _plugin.zonedSchedule(
-      r.id ?? r.dueDate.millisecondsSinceEpoch ~/ 1000,
-      r.title,
-      (r.amount == null) ? 'Jatuh tempo' : 'Jatuh tempo: Rp ${r.amount!.toStringAsFixed(0)}',
-      tzDateTime,
-      details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      payload: 'reminder:${r.id ?? ''}',
-    );
+    // Pastikan waktu masa depan untuk menghindari error penjadwalan
+    var tzDateTime = tz.TZDateTime.from(r.dueDate, tz.local);
+    final now = tz.TZDateTime.now(tz.local);
+    if (tzDateTime.isBefore(now)) {
+      // Jika dueDate sudah lewat, jadwalkan beberapa detik ke depan sebagai fallback aman
+      tzDateTime = now.add(const Duration(seconds: 5));
+    }
+
+    final id = r.id ?? r.dueDate.millisecondsSinceEpoch ~/ 1000;
+    final body = (r.amount == null)
+        ? 'Jatuh tempo'
+        : 'Jatuh tempo: Rp ${r.amount!.toStringAsFixed(0)}';
+
+    try {
+      await _plugin.zonedSchedule(
+        id,
+        r.title,
+        body,
+        tzDateTime,
+        details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+        payload: 'reminder:${r.id ?? ''}',
+      );
+    } on PlatformException catch (e) {
+      // Fallback: perangkat tidak mengizinkan exact alarms atau permission belum diberikan
+      final msg = e.message ?? '';
+      if (msg.contains('Exact alarms are not permitted') ||
+          msg.contains('SCHEDULE_EXACT_ALARM') ||
+          msg.contains('exact')) {
+        debugPrint('[NotificationService] Exact alarm tidak diizinkan, fallback ke inexact. Error: $msg');
+        await _plugin.zonedSchedule(
+          id,
+          r.title,
+          body,
+          tzDateTime,
+          details,
+          androidScheduleMode: AndroidScheduleMode.inexact,
+          uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+          payload: 'reminder:${r.id ?? ''}',
+        );
+      } else {
+        rethrow;
+      }
+    } catch (e) {
+      // Tangani error tak terduga tanpa memblokir aplikasi
+      debugPrint('[NotificationService] Gagal menjadwalkan notifikasi: $e');
+    }
   }
 
   /// Batalkan notifikasi dengan id

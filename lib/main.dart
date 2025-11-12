@@ -49,20 +49,31 @@ class _MyAppState extends State<MyApp> {
     return MultiProvider(
       providers: [
         Provider<FinanceRepository>.value(value: repo),
-        Provider<PreferencesService>.value(value: prefs),
+        ChangeNotifierProvider<PreferencesService>.value(value: prefs),
         Provider<NotificationService>.value(value: notif),
       ],
-      child: MaterialApp(
-        title: 'FinanSiswa',
-        locale: const Locale('id', 'ID'),
-        supportedLocales: const [Locale('id', 'ID'), Locale('en', 'US')],
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        theme: buildAppTheme(dark: prefs.theme == 'dark'),
-        home: _ready ? const HomeShell() : const _LoadingScreen(),
+      child: Consumer<PreferencesService>(
+        builder: (context, p, _) {
+          final themeMode = switch (p.theme) {
+            'dark' => ThemeMode.dark,
+            'light' => ThemeMode.light,
+            _ => ThemeMode.system,
+          };
+          return MaterialApp(
+            title: 'FinanSiswa',
+            locale: const Locale('id', 'ID'),
+            supportedLocales: const [Locale('id', 'ID'), Locale('en', 'US')],
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            theme: buildAppTheme(dark: false),
+            darkTheme: buildAppTheme(dark: true),
+            themeMode: themeMode,
+            home: _ready ? const HomeShell() : const _LoadingScreen(),
+          );
+        },
       ),
     );
   }
