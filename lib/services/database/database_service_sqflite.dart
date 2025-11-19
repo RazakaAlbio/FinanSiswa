@@ -83,11 +83,11 @@ class DatabaseServiceSqflite implements DatabaseService {
     String where = '';
     List<Object?> whereArgs = [];
     if (from != null) {
-      where += (where.isEmpty ? '' : ' AND ') + 'date >= ?';
+      where += '${where.isEmpty ? '' : ' AND '}date >= ?';
       whereArgs.add(from.millisecondsSinceEpoch);
     }
     if (to != null) {
-      where += (where.isEmpty ? '' : ' AND ') + 'date <= ?';
+      where += '${where.isEmpty ? '' : ' AND '}date <= ?';
       whereArgs.add(to.millisecondsSinceEpoch);
     }
     final rows = await _database.query('transactions', where: where.isEmpty ? null : where, whereArgs: whereArgs, orderBy: 'date DESC');
