@@ -8,9 +8,16 @@ import 'package:uas/pages/savings_page.dart';
 import 'package:uas/pages/reminders_page.dart';
 import 'package:uas/pages/settings_page.dart';
 import 'package:uas/repositories/finance_repository.dart';
+import 'package:uas/repositories/budget_repository.dart';
+import 'package:uas/repositories/savings_repository.dart';
 import 'package:uas/services/notification_service.dart';
 import 'package:uas/services/preferences_service.dart';
 import 'package:uas/theme/app_theme.dart';
+import 'package:uas/pages/transactions_page.dart'; 
+import 'package:uas/pages/budgets_page.dart'; 
+import 'package:uas/pages/savings_page.dart'; 
+import 'package:uas/pages/belajar_page.dart'; 
+import 'package:uas/services/navigation_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,6 +58,11 @@ class _MyAppState extends State<MyApp> {
         Provider<FinanceRepository>.value(value: repo),
         ChangeNotifierProvider<PreferencesService>.value(value: prefs),
         Provider<NotificationService>.value(value: notif),
+        ChangeNotifierProvider<NavigationService>(
+          create: (_) => NavigationService(),
+        ),
+        Provider<SavingsRepository>(create: (_) => SavingsRepository()),
+        Provider<BudgetRepository>(create: (_) => BudgetRepository()),
       ],
       child: Consumer<PreferencesService>(
         builder: (context, p, _) {
@@ -84,9 +96,7 @@ class _LoadingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }
 
@@ -103,14 +113,16 @@ class _HomeShellState extends State<HomeShell> {
 
   final _pages = const [
     DashboardPage(),
-    TransactionsPage(),
-    BudgetsPage(),
-    SavingsPage(),
-    RemindersPage(),
+    TransactionsPage(), // Laporan
+    SavingsPage(), // Target
+    BudgetsPage(), // Budget
+    BelajarPage(), // Belajar
   ];
 
   @override
   Widget build(BuildContext context) {
+    final navigationService = context.watch<NavigationService>();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('FinanSiswa'),
@@ -118,25 +130,42 @@ class _HomeShellState extends State<HomeShell> {
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SettingsPage()),
-              );
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const SettingsPage()));
             },
           ),
         ],
       ),
-      body: _pages[_index],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'Dashboard'),
-          NavigationDestination(icon: Icon(Icons.sync_alt), selectedIcon: Icon(Icons.sync), label: 'Transaksi'),
-          NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), selectedIcon: Icon(Icons.account_balance_wallet), label: 'Anggaran'),
-          NavigationDestination(icon: Icon(Icons.savings_outlined), selectedIcon: Icon(Icons.savings), label: 'Tabungan'),
-          NavigationDestination(icon: Icon(Icons.notifications_none), selectedIcon: Icon(Icons.notifications), label: 'Pengingat'),
+      body: _pages[navigationService.currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: navigationService.currentIndex,
+        onTap: (i) => navigationService.setCurrentIndex(i),
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard),
+            label: 'Dashboard',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bar_chart),
+            label: 'Laporan',
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.savings), label: 'Target'),
+          BottomNavigationBarItem(icon: Icon(Icons.pie_chart), label: 'Budget'),
+          BottomNavigationBarItem(icon: Icon(Icons.school), label: 'Belajar'),
         ],
       ),
     );
+  }
+}
+
+// Tambahkan halaman placeholder untuk Belajar
+class PlaceholderPage extends StatelessWidget {
+  const PlaceholderPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(child: Text('Halaman Belajar - Dalam Pengembangan'));
   }
 }

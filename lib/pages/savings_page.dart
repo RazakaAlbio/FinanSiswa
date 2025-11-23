@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:uas/models/saving_goal.dart';
 import 'package:uas/repositories/finance_repository.dart';
 import 'package:uas/pages/savings_form_page.dart';
-import 'package:uas/theme/app_theme.dart';
 
-/// Halaman Target Tabungan
 class SavingsPage extends StatefulWidget {
   const SavingsPage({super.key});
 
@@ -50,27 +49,40 @@ class _SavingsPageState extends State<SavingsPage> {
                   TextFormField(
                     controller: nameCtrl,
                     decoration: const InputDecoration(labelText: 'Nama tujuan'),
-                    validator: (v) => (v == null || v.trim().length < 2) ? 'Nama minimal 2 karakter' : null,
+                    validator: (v) => (v == null || v.trim().length < 2)
+                        ? 'Nama minimal 2 karakter'
+                        : null,
                   ),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: targetCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(labelText: 'Target nominal'),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Target nominal',
+                    ),
                     validator: (v) {
-                      if (v == null || v.trim().isEmpty) return 'Target wajib diisi';
+                      if (v == null || v.trim().isEmpty)
+                        return 'Target wajib diisi';
                       final parsed = double.tryParse(v.replaceAll(',', '.'));
-                      if (parsed == null || parsed <= 0) return 'Target harus lebih dari 0';
+                      if (parsed == null || parsed <= 0)
+                        return 'Target harus lebih dari 0';
                       return null;
                     },
                   ),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: savedCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(labelText: 'Nominal terkumpul'),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Nominal terkumpul',
+                    ),
                     validator: (v) {
-                      final parsed = double.tryParse(v?.replaceAll(',', '.') ?? '0') ?? 0;
+                      final parsed =
+                          double.tryParse(v?.replaceAll(',', '.') ?? '0') ?? 0;
                       if (parsed < 0) return 'Nominal tidak boleh negatif';
                       return null;
                     },
@@ -79,7 +91,14 @@ class _SavingsPageState extends State<SavingsPage> {
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Batas waktu (opsional)'),
-                    subtitle: Text(deadline == null ? '-' : DateFormat('dd MMM yyyy', 'id_ID').format(deadline!)),
+                    subtitle: Text(
+                      deadline == null
+                          ? '-'
+                          : DateFormat(
+                              'dd MMM yyyy',
+                              'id_ID',
+                            ).format(deadline!),
+                    ),
                     trailing: Wrap(
                       spacing: 8,
                       children: [
@@ -87,14 +106,14 @@ class _SavingsPageState extends State<SavingsPage> {
                           icon: const Icon(Icons.calendar_today),
                           onPressed: () async {
                             final picked = await showDatePicker(
-                              context: ctx,
+                              context: context,
                               initialDate: deadline ?? DateTime.now(),
                               firstDate: DateTime(2000),
                               lastDate: DateTime(2100),
                             );
                             if (picked != null) {
                               deadline = picked;
-                              (ctx as Element).markNeedsBuild();
+                              (ctx as StatefulElement).markNeedsBuild();
                             }
                           },
                         ),
@@ -103,7 +122,7 @@ class _SavingsPageState extends State<SavingsPage> {
                             icon: const Icon(Icons.clear),
                             onPressed: () {
                               deadline = null;
-                              (ctx as Element).markNeedsBuild();
+                              (ctx as StatefulElement).markNeedsBuild();
                             },
                           ),
                       ],
@@ -114,14 +133,24 @@ class _SavingsPageState extends State<SavingsPage> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Batal'),
+            ),
             FilledButton(
               onPressed: () {
                 if (!formKey.currentState!.validate()) return;
-                final target = double.parse(targetCtrl.text.replaceAll(',', '.'));
-                final saved = double.parse(savedCtrl.text.replaceAll(',', '.'));
-                final g = SavingGoal(name: nameCtrl.text.trim(), targetAmount: target, savedAmount: saved, deadline: deadline);
-                Navigator.pop(ctx, g);
+                final goal = SavingGoal(
+                  name: nameCtrl.text.trim(),
+                  targetAmount: double.parse(
+                    targetCtrl.text.replaceAll(',', '.'),
+                  ),
+                  savedAmount: double.parse(
+                    savedCtrl.text.replaceAll(',', '.'),
+                  ),
+                  deadline: deadline,
+                );
+                Navigator.pop(ctx, goal);
               },
               child: const Text('Simpan'),
             ),
@@ -129,6 +158,7 @@ class _SavingsPageState extends State<SavingsPage> {
         );
       },
     );
+
     if (result != null) {
       await context.read<FinanceRepository>().addSavingGoal(result);
       await _load();
@@ -144,50 +174,296 @@ class _SavingsPageState extends State<SavingsPage> {
   Widget build(BuildContext context) {
     final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp');
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       body: RefreshIndicator(
         onRefresh: _load,
-        child: ListView.separated(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          itemCount: _goals.length,
-          separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
-          itemBuilder: (ctx, i) {
-            final g = _goals[i];
-            return Card(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: CustomScrollView(
+          slivers: [
+            // HEADER ORANGE - PERSIS PROTOTYPE
+            SliverAppBar(
+              expandedHeight: 120,
+              pinned: true,
+              backgroundColor: const Color(0xFFFF9800),
+              flexibleSpace: FlexibleSpaceBar(
+                background: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(g.name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-                        if (g.id != null)
-                          IconButton(onPressed: () => _delete(g.id!), icon: const Icon(Icons.delete_outline)),
+                        Text(
+                          'Target Tabungan',
+                          style: GoogleFonts.poppins(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Wujudkan impianmu dengan menabung',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            color: Colors.white,
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: AppSpacing.sm),
-                    LinearProgressIndicator(value: g.progress, minHeight: 10),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text('${fmt.format(g.savedAmount)} / ${fmt.format(g.targetAmount)}',
-                        style: Theme.of(context).textTheme.bodyMedium),
-                    if (g.deadline != null)
-                      Text('Target: ${DateFormat('dd MMM yyyy', 'id_ID').format(g.deadline!)}',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54)),
-                  ],
+                  ),
                 ),
               ),
-            );
-          },
+            ),
+
+            // BUAT TARGET BARU BUTTON
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                child: FilledButton.icon(
+                  onPressed: () async {
+                    final created = await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const SavingsFormPage(),
+                      ),
+                    );
+                    if (created == true) await _load();
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Buat Target Baru'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF00BFA5),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // LIST GOALS ATAU PLACEHOLDER JIKA KOSONG
+            if (_goals.isEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    children: [
+                      _buildGoalCard(
+                        icon: Icons.flight,
+                        title: 'Trip ke Bali',
+                        subtitle: 'Bulan Tahun',
+                        progress: 0.0,
+                        saved: 0.0,
+                        target: 0.0,
+                        percentage: 0,
+                        showDelete: false,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildGoalCard(
+                        icon: Icons.flight,
+                        title: 'Trip ke Bali',
+                        subtitle: 'Bulan Tahun',
+                        progress: 0.0,
+                        saved: 0.0,
+                        target: 0.0,
+                        percentage: 0,
+                        showDelete: false,
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              SliverList(
+                delegate: SliverChildBuilderDelegate((context, i) {
+                  final g = _goals[i];
+                  final progress = g.targetAmount > 0
+                      ? g.savedAmount / g.targetAmount
+                      : 0.0;
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                    child: _buildGoalCard(
+                      icon: Icons
+                          .flight, // Dummy icon, bisa diganti per goal jika ada data
+                      title: g.name,
+                      subtitle: g.deadline != null
+                          ? DateFormat('MMM yyyy', 'id_ID').format(g.deadline!)
+                          : 'Bulan Tahun',
+                      progress: progress,
+                      saved: g.savedAmount,
+                      target: g.targetAmount,
+                      percentage: (progress * 100).round(),
+                      showDelete: g.id != null,
+                      onDelete: g.id != null ? () => _delete(g.id!) : null,
+                    ),
+                  );
+                }, childCount: _goals.length),
+              ),
+
+            // KARTU MOTIVASI BAWAH
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+                child: Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundColor: const Color(
+                            0xFFFF9800,
+                          ).withOpacity(0.2),
+                          child: const Icon(
+                            Icons.lightbulb_outline,
+                            color: Color(0xFFFF9800),
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Kenapa Harus Punya Target?',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Target tabungan membantumu tetap termotivasi dan fokus menabung. Mulai dengan target kecil.',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final created = await Navigator.of(context)
-              .push(MaterialPageRoute(builder: (_) => const SavingsFormPage()));
-          if (created == true) await _load();
-        },
-        child: const Icon(Icons.add),
+    );
+  }
+
+  // HELPER UNTUK GOAL CARD
+  Widget _buildGoalCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required double progress,
+    required double saved,
+    required double target,
+    required int percentage,
+    required bool showDelete,
+    VoidCallback? onDelete,
+  }) {
+    final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ');
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: const Color(0xFF00BFA5).withOpacity(0.1),
+                  child: Icon(icon, color: const Color(0xFF00BFA5), size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Text(
+                  '$percentage%',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                if (showDelete) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    onPressed: onDelete,
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            LinearProgressIndicator(
+              value: progress,
+              backgroundColor: Colors.grey[200],
+              valueColor: const AlwaysStoppedAnimation(Color(0xFF4CAF50)),
+              minHeight: 8,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  fmt.format(saved),
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                Text(
+                  fmt.format(target),
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.grey[800],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Sisa: ${fmt.format(target - saved)}',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {}, // Logic tambah dana bisa ditambahkan nanti
+                  child: const Text(
+                    '+ Tambah Dana',
+                    style: TextStyle(color: Color(0xFF00BFA5)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

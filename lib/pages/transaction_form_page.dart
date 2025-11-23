@@ -53,7 +53,11 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
   Widget build(BuildContext context) {
     final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp');
     return Scaffold(
-      appBar: AppBar(title: const Text('Tambah Transaksi')),
+      appBar: AppBar(
+        title: const Text('Tambah Transaksi'),
+        backgroundColor: const Color(0xFF00BFA5),
+        foregroundColor: Colors.white,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -62,45 +66,91 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
             children: [
               DropdownButtonFormField<TransactionType>(
                 value: _type,
-                decoration: const InputDecoration(labelText: 'Tipe'),
+                decoration: const InputDecoration(
+                  labelText: 'Tipe',
+                  border: OutlineInputBorder(),
+                ),
                 items: const [
-                  DropdownMenuItem(value: TransactionType.income, child: Text('Pemasukan')),
-                  DropdownMenuItem(value: TransactionType.expense, child: Text('Pengeluaran')),
+                  DropdownMenuItem(
+                    value: TransactionType.income,
+                    child: Text('Pemasukan'),
+                  ),
+                  DropdownMenuItem(
+                    value: TransactionType.expense,
+                    child: Text('Pengeluaran'),
+                  ),
                 ],
-                onChanged: (v) => setState(() => _type = v ?? TransactionType.expense),
+                onChanged: (v) =>
+                    setState(() => _type = v ?? TransactionType.expense),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _amountCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(labelText: 'Nominal (${fmt.currencySymbol})'),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: InputDecoration(
+                  labelText: 'Nominal (${fmt.currencySymbol})',
+                  border: const OutlineInputBorder(),
+                ),
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Nominal wajib diisi';
+                  if (v == null || v.trim().isEmpty)
+                    return 'Nominal wajib diisi';
                   final parsed = double.tryParse(v.replaceAll(',', '.'));
-                  if (parsed == null || parsed <= 0) return 'Nominal harus lebih dari 0';
+                  if (parsed == null || parsed <= 0)
+                    return 'Nominal harus lebih dari 0';
                   return null;
                 },
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _categoryCtrl,
-                decoration: const InputDecoration(labelText: 'Kategori'),
-                validator: (v) => (v == null || v.trim().length < 2) ? 'Kategori minimal 2 karakter' : null,
+                decoration: const InputDecoration(
+                  labelText: 'Kategori',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (v) => (v == null || v.trim().length < 2)
+                    ? 'Kategori minimal 2 karakter'
+                    : null,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Tanggal'),
-                subtitle: Text(DateFormat('dd MMM yyyy', 'id_ID').format(_date)),
-                trailing: IconButton(icon: const Icon(Icons.calendar_today), onPressed: _pickDate),
+                subtitle: Text(
+                  DateFormat('dd MMM yyyy', 'id_ID').format(_date),
+                ),
+                trailing: IconButton(
+                  icon: const Icon(Icons.calendar_today),
+                  onPressed: _pickDate,
+                  style: IconButton.styleFrom(
+                    backgroundColor: const Color(0xFF00BFA5),
+                    foregroundColor: Colors.white,
+                  ),
+                ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _noteCtrl,
-                decoration: const InputDecoration(labelText: 'Catatan (opsional)'),
+                decoration: const InputDecoration(
+                  labelText: 'Catatan (opsional)',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
               ),
-              const SizedBox(height: 20),
-              FilledButton.icon(onPressed: _submit, icon: const Icon(Icons.save), label: const Text('Simpan')),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: _submit,
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF00BFA5),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: const Text(
+                  'Simpan Transaksi',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ),
             ],
           ),
         ),
