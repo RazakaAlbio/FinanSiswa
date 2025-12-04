@@ -10,6 +10,7 @@ import 'package:uas/pages/settings_page.dart';
 import 'package:uas/repositories/finance_repository.dart';
 import 'package:uas/repositories/budget_repository.dart';
 import 'package:uas/repositories/savings_repository.dart';
+import 'package:uas/repositories/category_repository.dart';
 import 'package:uas/services/notification_service.dart';
 import 'package:uas/services/preferences_service.dart';
 import 'package:uas/theme/app_theme.dart';
@@ -18,6 +19,7 @@ import 'package:uas/pages/budgets_page.dart';
 import 'package:uas/pages/savings_page.dart'; 
 import 'package:uas/pages/belajar_page.dart'; 
 import 'package:uas/services/navigation_service.dart';
+import 'package:uas/pages/welcome_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -63,6 +65,7 @@ class _MyAppState extends State<MyApp> {
         ),
         Provider<SavingsRepository>(create: (_) => SavingsRepository()),
         Provider<BudgetRepository>(create: (_) => BudgetRepository()),
+        Provider<CategoryRepository>(create: (_) => CategoryRepository()),
       ],
       child: Consumer<PreferencesService>(
         builder: (context, p, _) {
@@ -83,7 +86,9 @@ class _MyAppState extends State<MyApp> {
             theme: buildAppTheme(dark: false),
             darkTheme: buildAppTheme(dark: true),
             themeMode: themeMode,
-            home: _ready ? const HomeShell() : const _LoadingScreen(),
+            home: _ready
+                ? (p.isFirstLaunch ? const WelcomePage() : const HomeShell())
+                : const _LoadingScreen(),
           );
         },
       ),

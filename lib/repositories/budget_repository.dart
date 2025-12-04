@@ -1,27 +1,37 @@
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uas/models/monthly_budget.dart';
 
 class BudgetRepository {
+  static const _keyBudget = 'monthly_budget';
+
   /// Mengambil budget bulanan untuk bulan berjalan
   Future<MonthlyBudget?> getCurrentMonthBudget() async {
-    // Untuk sementara return dummy data
-    // Nanti bisa diintegrasikan dengan database
-    return MonthlyBudget(
-      id: 'current',
-      amount: 5000000, // Rp 5.000.000
-      month: DateTime.now().month,
-      year: DateTime.now().year,
-      spentAmount: 0, // Akan dihitung dari transaksi
-    );
+    final prefs = await SharedPreferences.getInstance();
+    final String? budgetJson = prefs.getString(_keyBudget);
+    
+    if (budgetJson != null) {
+      try {
+        return MonthlyBudget.fromMap(jsonDecode(budgetJson));
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
   }
 
   /// Menyimpan budget bulanan
   Future<void> setMonthlyBudget(MonthlyBudget budget) async {
-    // Implementasi untuk menyimpan budget ke database
-    // Untuk sementara hanya simpan di memory
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyBudget, jsonEncode(budget.toMap()));
   }
 
   /// Update spent amount berdasarkan transaksi
   Future<void> updateSpentAmount(double amount) async {
-    // Implementasi untuk update pengeluaran
+    final budget = await getCurrentMonthBudget();
+    if (budget != null) {
+      final newBudget = budget.copyWith(spentAmount: amount);
+      await setMonthlyBudget(newBudget);
+    }
   }
 }

@@ -7,6 +7,8 @@ import 'package:uas/pages/transaction_detail_page.dart';
 import 'package:uas/repositories/finance_repository.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:uas/models/category.dart';
+import 'package:uas/repositories/category_repository.dart';
 
 class TransactionsPage extends StatefulWidget {
   const TransactionsPage({super.key});
@@ -21,6 +23,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
   double _totalExpenses = 0.0;
   double _averageDaily = 0.0;
   Map<String, double> _categoryExpenses = {};
+  List<Category> _categories = [];
 
   @override
   void initState() {
@@ -30,9 +33,12 @@ class _TransactionsPageState extends State<TransactionsPage> {
 
   Future<void> _load() async {
     final repo = context.read<FinanceRepository>();
+    final catRepo = context.read<CategoryRepository>();
     final txns = await repo.listTransactions();
+    final cats = await catRepo.getCategories();
     setState(() {
       _txns = txns;
+      _categories = cats;
       _calculateStatistics(txns);
     });
   }
@@ -56,21 +62,22 @@ class _TransactionsPageState extends State<TransactionsPage> {
   }
 
   // Warna kategori sesuai prototype
-  Color _getCategoryColor(String category) {
-    switch (category.toLowerCase()) {
-      case 'makanan':
-        return const Color(0xFFFF8C00); // orange
-      case 'hiburan':
-        return const Color(0xFFE91E63); // pink
-      case 'akademik':
-        return const Color(0xFF9C27B0); // purple
-      case 'transportasi':
-        return const Color(0xFF2196F3); // blue
-      case 'kesehatan':
-        return const Color(0xFF4CAF50); // green
-      case 'lainnya':
-      default:
-        return const Color(0xFF607D8B); // grey blue
+  // Warna kategori dari repository
+  Color _getCategoryColor(String categoryName) {
+    try {
+      final cat = _categories.firstWhere(
+        (c) => c.name.toLowerCase() == categoryName.toLowerCase(),
+        orElse: () => Category(
+          id: 'unknown',
+          name: 'Unknown',
+          type: TransactionType.expense,
+          iconCode: Icons.help.codePoint,
+          colorValue: Colors.grey.value,
+        ),
+      );
+      return cat.color;
+    } catch (e) {
+      return Colors.grey;
     }
   }
 

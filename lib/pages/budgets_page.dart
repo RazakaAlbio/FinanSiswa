@@ -6,6 +6,9 @@ import 'package:uas/models/budget.dart';
 import 'package:uas/repositories/finance_repository.dart';
 import 'package:uas/pages/budget_form_page.dart';
 import 'package:uas/pages/budget_detail_page.dart';
+import 'package:uas/pages/budget_slider_modal.dart';
+import 'package:uas/models/monthly_budget.dart';
+import 'package:uas/repositories/budget_repository.dart';
 
 class BudgetsPage extends StatefulWidget {
   const BudgetsPage({super.key});
@@ -16,6 +19,7 @@ class BudgetsPage extends StatefulWidget {
 
 class _BudgetsPageState extends State<BudgetsPage> {
   List<Budget> _budgets = [];
+  MonthlyBudget? _monthlyBudget;
 
   @override
   void initState() {
@@ -25,8 +29,32 @@ class _BudgetsPageState extends State<BudgetsPage> {
 
   Future<void> _load() async {
     final repo = context.read<FinanceRepository>();
+    final budgetRepo = context.read<BudgetRepository>();
     final items = await repo.listBudgets();
-    setState(() => _budgets = items);
+    final monthly = await budgetRepo.getCurrentMonthBudget();
+    setState(() {
+      _budgets = items;
+      _monthlyBudget = monthly;
+    });
+  }
+
+  void _editBudget() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => BudgetSliderModal(
+        min: 0,
+        max: 100000000,
+        initial: _monthlyBudget?.amount ?? 5000000,
+        cityName: 'Custom',
+        isFirstLaunch: false,
+      ),
+    ).then((updated) {
+      if (updated == true) _load();
+    });
   }
 
   Future<void> _addBudgetDialog() async {
@@ -218,19 +246,26 @@ class _BudgetsPageState extends State<BudgetsPage> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          fmt.format(
-                            _budgets.fold(0.0, (s, b) => s + b.amount),
-                          ),
+                        IconButton(
+                          icon: const Icon(Icons.edit, size: 20, color: Color(0xFF00BFA5)),
+                          onPressed: _editBudget,
+                          tooltip: 'Ubah Limit Bulanan',
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      fmt.format(_monthlyBudget?.amount ?? 0),
                           style: GoogleFonts.poppins(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        LinearProgressIndicator(
-                          value: 0.0,
+                    const SizedBox(height: 12),
+                    LinearProgressIndicator(
+                      value: _monthlyBudget == null
+                          ? 0
+                          : (_monthlyBudget!.spentAmount / _monthlyBudget!.amount).clamp(0.0, 1.0),
                           backgroundColor: Colors.grey[200],
                           valueColor: const AlwaysStoppedAnimation(
                             Color(0xFF4CAF50),
@@ -240,7 +275,7 @@ class _BudgetsPageState extends State<BudgetsPage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Terpakai Rp 0.0 (0%)',
+                          'Terpakai ${fmt.format(_monthlyBudget?.spentAmount ?? 0)} (${_monthlyBudget?.percentage.toStringAsFixed(1)}%)',
                           style: GoogleFonts.poppins(
                             fontSize: 12,
                             color: Colors.grey[600],

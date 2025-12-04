@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:uas/models/transaction.dart';
+import 'package:uas/models/category.dart';
+import 'package:uas/repositories/category_repository.dart';
+import 'package:uas/pages/categories_page.dart';
 
 /// Form transaksi dengan validasi input
 class TransactionFormPage extends StatefulWidget {
@@ -13,15 +17,28 @@ class TransactionFormPage extends StatefulWidget {
 class _TransactionFormPageState extends State<TransactionFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _amountCtrl = TextEditingController();
-  final _categoryCtrl = TextEditingController();
+  final _noteCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
   TransactionType _type = TransactionType.expense;
   DateTime _date = DateTime.now();
+  List<Category> _categories = [];
+  String? _selectedCategoryId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    final repo = context.read<CategoryRepository>();
+    final items = await repo.getCategories();
+    setState(() => _categories = items);
+  }
 
   @override
   void dispose() {
     _amountCtrl.dispose();
-    _categoryCtrl.dispose();
     _noteCtrl.dispose();
     super.dispose();
   }
@@ -39,9 +56,11 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
     final amount = double.parse(_amountCtrl.text.replaceAll(',', '.'));
+    final categoryName = _categories.firstWhere((c) => c.id == _selectedCategoryId).name;
+    
     final txn = FinanceTransaction(
       amount: amount,
-      category: _categoryCtrl.text.trim(),
+      category: categoryName,
       type: _type,
       date: _date,
       note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
@@ -103,15 +122,46 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                 },
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _categoryCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Kategori',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) => (v == null || v.trim().length < 2)
-                    ? 'Kategori minimal 2 karakter'
-                    : null,
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedCategoryId,
+                      decoration: const InputDecoration(
+                        labelText: 'Kategori',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: _categories
+                          .where((c) => c.type == _type)
+                          .map((c) => DropdownMenuItem(
+                                value: c.id,
+                                child: Row(
+                                  children: [
+                                    Icon(c.icon, size: 18, color: c.color),
+                                    const SizedBox(width: 8),
+                                    Text(c.name),
+                                  ],
+                                ),
+                              ))
+                          .toList(),
+                      onChanged: (v) => setState(() => _selectedCategoryId = v),
+                      validator: (v) => v == null ? 'Pilih kategori' : null,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.settings, color: Color(0xFF00BFA5)),
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const CategoriesPage()),
+                      );
+                      _loadCategories();
+                    },
+                    tooltip: 'Kelola Kategori',
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               ListTile(
