@@ -18,7 +18,6 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _amountCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
-  final _noteCtrl = TextEditingController();
   TransactionType _type = TransactionType.expense;
   DateTime _date = DateTime.now();
   List<Category> _categories = [];

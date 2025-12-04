@@ -9,6 +9,7 @@ import 'package:uas/pages/budget_detail_page.dart';
 import 'package:uas/pages/budget_slider_modal.dart';
 import 'package:uas/models/monthly_budget.dart';
 import 'package:uas/repositories/budget_repository.dart';
+import 'package:uas/models/transaction.dart';
 
 class BudgetsPage extends StatefulWidget {
   const BudgetsPage({super.key});
@@ -20,6 +21,7 @@ class BudgetsPage extends StatefulWidget {
 class _BudgetsPageState extends State<BudgetsPage> {
   List<Budget> _budgets = [];
   MonthlyBudget? _monthlyBudget;
+  List<FinanceTransaction> _transactions = [];
 
   @override
   void initState() {
@@ -32,10 +34,62 @@ class _BudgetsPageState extends State<BudgetsPage> {
     final budgetRepo = context.read<BudgetRepository>();
     final items = await repo.listBudgets();
     final monthly = await budgetRepo.getCurrentMonthBudget();
+    final txns = await repo.listTransactions();
     setState(() {
       _budgets = items;
       _monthlyBudget = monthly;
+      _transactions = txns;
     });
+  }
+
+  Future<void> _applyPreset() async {
+    final cities = [
+      {'name': 'Jakarta', 'amount': 4500000.0},
+      {'name': 'Bandung', 'amount': 3500000.0},
+      {'name': 'Surabaya', 'amount': 3800000.0},
+      {'name': 'Yogyakarta', 'amount': 2500000.0},
+      {'name': 'Malang', 'amount': 2800000.0},
+    ];
+
+    final selected = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Pilih Kota'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: cities.length,
+            itemBuilder: (context, index) {
+              final city = cities[index];
+              final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+              return ListTile(
+                title: Text(city['name'] as String),
+                subtitle: Text('Estimasi: ${fmt.format(city['amount'])}'),
+                onTap: () => Navigator.pop(ctx, city),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+        ],
+      ),
+    );
+
+    if (selected != null) {
+      final repo = context.read<BudgetRepository>();
+      final now = DateTime.now();
+      final budget = MonthlyBudget(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        amount: selected['amount'] as double,
+        month: now.month,
+        year: now.year,
+        spentAmount: _monthlyBudget?.spentAmount ?? 0,
+      );
+      await repo.setMonthlyBudget(budget);
+      await _load();
+    }
   }
 
   void _editBudget() {
@@ -239,33 +293,36 @@ class _BudgetsPageState extends State<BudgetsPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Total Budget',
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.edit, size: 20, color: Color(0xFF00BFA5)),
+                              onPressed: _editBudget,
+                              tooltip: 'Ubah Limit Bulanan',
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
                         Text(
-                          'Total Budget',
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.edit, size: 20, color: Color(0xFF00BFA5)),
-                          onPressed: _editBudget,
-                          tooltip: 'Ubah Limit Bulanan',
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      fmt.format(_monthlyBudget?.amount ?? 0),
+                          fmt.format(_monthlyBudget?.amount ?? 0),
                           style: GoogleFonts.poppins(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                    const SizedBox(height: 12),
-                    LinearProgressIndicator(
-                      value: _monthlyBudget == null
-                          ? 0
-                          : (_monthlyBudget!.spentAmount / _monthlyBudget!.amount).clamp(0.0, 1.0),
+                        const SizedBox(height: 12),
+                        LinearProgressIndicator(
+                          value: _monthlyBudget == null
+                              ? 0
+                              : (_monthlyBudget!.spentAmount / _monthlyBudget!.amount).clamp(0.0, 1.0),
                           backgroundColor: Colors.grey[200],
                           valueColor: const AlwaysStoppedAnimation(
                             Color(0xFF4CAF50),
@@ -275,7 +332,7 @@ class _BudgetsPageState extends State<BudgetsPage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Terpakai ${fmt.format(_monthlyBudget?.spentAmount ?? 0)} (${_monthlyBudget?.percentage.toStringAsFixed(1)}%)',
+                          'Terpakai ${fmt.format(_monthlyBudget?.spentAmount ?? 0)} (${(_monthlyBudget?.percentage ?? 0).toStringAsFixed(1)}%)',
                           style: GoogleFonts.poppins(
                             fontSize: 12,
                             color: Colors.grey[600],
@@ -296,22 +353,39 @@ class _BudgetsPageState extends State<BudgetsPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: ListTile(
-                    title: Text(
-                      'Gunakan Budget Preset',
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                  child: InkWell(
+                    onTap: _applyPreset,
+                    borderRadius: BorderRadius.circular(16),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Gunakan Budget Preset',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Budget disesuaikan untuk kota Bandung',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                        ],
                       ),
                     ),
-                    subtitle: Text(
-                      'Budget disesuaikan untuk kota Bandung',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    trailing: Switch(value: false, onChanged: (_) {}),
                   ),
                 ),
               ),
@@ -340,8 +414,15 @@ class _BudgetsPageState extends State<BudgetsPage> {
             SliverList(
               delegate: SliverChildBuilderDelegate((context, i) {
                 final b = _budgets[i];
-                final spent = 0.0; // no spent logic → dummy
-                final progress = b.amount > 0 ? spent / b.amount : 0.0;
+                
+                // Calculate spent amount for this budget category
+                final spent = _transactions
+                    .where((t) => 
+                        t.type == TransactionType.expense && 
+                        t.category.toLowerCase() == b.name.toLowerCase())
+                    .fold(0.0, (sum, t) => sum + t.amount);
+                    
+                final progress = b.amount > 0 ? (spent / b.amount).clamp(0.0, 1.0) : 0.0;
 
                 return GestureDetector(
                   onTap: () {

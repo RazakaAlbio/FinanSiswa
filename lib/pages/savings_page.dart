@@ -166,8 +166,79 @@ class _SavingsPageState extends State<SavingsPage> {
   }
 
   Future<void> _delete(int id) async {
-    await context.read<FinanceRepository>().deleteSavingGoal(id);
-    await _load();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus Target?'),
+        content: const Text('Data yang dihapus tidak dapat dikembalikan.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Hapus')),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await context.read<FinanceRepository>().deleteSavingGoal(id);
+      await _load();
+    }
+  }
+
+  Future<void> _edit(SavingGoal goal) async {
+    final updated = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SavingsFormPage(goal: goal),
+      ),
+    );
+    if (updated == true) await _load();
+  }
+
+  Future<void> _showAddFundsDialog(SavingGoal goal) async {
+    final ctrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    final amount = await showDialog<double>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Tambah Dana'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: ctrl,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              labelText: 'Nominal',
+              hintText: 'Contoh: 50000',
+            ),
+            validator: (v) {
+              if (v == null || v.isEmpty) return 'Wajib diisi';
+              final n = double.tryParse(v.replaceAll(',', '.'));
+              if (n == null || n <= 0) return 'Nominal tidak valid';
+              return null;
+            },
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+          FilledButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(ctx, double.parse(ctrl.text.replaceAll(',', '.')));
+              }
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+
+    if (amount != null) {
+      final repo = context.read<FinanceRepository>();
+      final newSaved = goal.savedAmount + amount;
+      final updated = goal.copyWith(savedAmount: newSaved);
+      await repo.updateSavingGoal(updated);
+      await _load();
+    }
   }
 
   @override
@@ -295,6 +366,9 @@ class _SavingsPageState extends State<SavingsPage> {
                       percentage: (progress * 100).round(),
                       showDelete: g.id != null,
                       onDelete: g.id != null ? () => _delete(g.id!) : null,
+                      onEdit: g.id != null ? () => _edit(g) : null,
+                      onAddFunds: g.id != null ? () => _showAddFundsDialog(g) : null,
+                      deadline: g.deadline,
                     ),
                   );
                 }, childCount: _goals.length),
@@ -370,8 +444,12 @@ class _SavingsPageState extends State<SavingsPage> {
     required int percentage,
     required bool showDelete,
     VoidCallback? onDelete,
+    VoidCallback? onEdit,
+    VoidCallback? onAddFunds,
+    DateTime? deadline,
   }) {
     final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ');
+    final dateFmt = DateFormat('dd MMM yyyy', 'id_ID');
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -408,8 +486,14 @@ class _SavingsPageState extends State<SavingsPage> {
                 if (showDelete) ...[
                   const SizedBox(width: 8),
                   IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.blue),
+                    onPressed: onEdit,
+                    tooltip: 'Edit Target',
+                  ),
+                  IconButton(
                     icon: const Icon(Icons.delete_outline, color: Colors.red),
                     onPressed: onDelete,
+                    tooltip: 'Hapus Target',
                   ),
                 ],
               ],
@@ -453,8 +537,30 @@ class _SavingsPageState extends State<SavingsPage> {
                     color: Colors.grey[600],
                   ),
                 ),
+                if (deadline != null)
+                  Text(
+                    'Tenggat: ${dateFmt.format(deadline)}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.red[400],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Sisa: ${fmt.format(target - saved)}',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
                 TextButton(
-                  onPressed: () {}, // Logic tambah dana bisa ditambahkan nanti
+                  onPressed: onAddFunds,
                   child: const Text(
                     '+ Tambah Dana',
                     style: TextStyle(color: Color(0xFF00BFA5)),

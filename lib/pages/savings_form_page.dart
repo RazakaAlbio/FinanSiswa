@@ -6,7 +6,9 @@ import 'package:uas/repositories/finance_repository.dart';
 import 'package:uas/theme/app_theme.dart';
 
 class SavingsFormPage extends StatefulWidget {
-  const SavingsFormPage({super.key});
+  final SavingGoal? goal;
+
+  const SavingsFormPage({super.key, this.goal});
 
   @override
   State<SavingsFormPage> createState() => _SavingsFormPageState();
@@ -19,6 +21,17 @@ class _SavingsFormPageState extends State<SavingsFormPage> {
   final _savedCtrl = TextEditingController(text: '0');
   DateTime? _deadline;
   bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.goal != null) {
+      _nameCtrl.text = widget.goal!.name;
+      _targetCtrl.text = widget.goal!.targetAmount.toStringAsFixed(0);
+      _savedCtrl.text = widget.goal!.savedAmount.toStringAsFixed(0);
+      _deadline = widget.goal!.deadline;
+    }
+  }
 
   String? _validateAmount(String? v, {bool allowZero = false}) {
     if (v == null || v.trim().isEmpty) return 'Nominal wajib diisi';
@@ -45,12 +58,18 @@ class _SavingsFormPageState extends State<SavingsFormPage> {
     try {
       final repo = context.read<FinanceRepository>();
       final goal = SavingGoal(
+        id: widget.goal?.id,
         name: _nameCtrl.text.trim(),
         targetAmount: double.parse(_targetCtrl.text.replaceAll(',', '.')),
         savedAmount: double.parse(_savedCtrl.text.replaceAll(',', '.')),
         deadline: _deadline,
       );
-      await repo.addSavingGoal(goal);
+      
+      if (widget.goal == null) {
+        await repo.addSavingGoal(goal);
+      } else {
+        await repo.updateSavingGoal(goal);
+      }
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {
@@ -64,7 +83,9 @@ class _SavingsFormPageState extends State<SavingsFormPage> {
   Widget build(BuildContext context) {
     final fmt = DateFormat('dd MMM yyyy', 'id_ID');
     return Scaffold(
-      appBar: AppBar(title: const Text('Tambah Target Tabungan')),
+      appBar: AppBar(
+        title: Text(widget.goal == null ? 'Tambah Target Tabungan' : 'Edit Target Tabungan'),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Form(

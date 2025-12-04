@@ -188,76 +188,87 @@ class _DashboardPageState extends State<DashboardPage> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Budget Bulanan',
-                              style: GoogleFonts.poppins(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const BudgetsPage(),
                             ),
-                            const SizedBox(height: 16),
-                            LinearProgressIndicator(
-                              value: _monthlyBudget == null
-                                  ? 0
-                                  : (expense / _monthlyBudget!.amount).clamp(
-                                      0.0,
-                                      1.0,
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Budget Bulanan',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              LinearProgressIndicator(
+                                value: _monthlyBudget == null
+                                    ? 0
+                                    : (expense / _monthlyBudget!.amount).clamp(
+                                        0.0,
+                                        1.0,
+                                      ),
+                                backgroundColor: Colors.grey[300],
+                                valueColor: const AlwaysStoppedAnimation(
+                                  Color(0xFF4CAF50),
+                                ),
+                                minHeight: 10,
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    _monthlyBudget == null
+                                        ? '0%'
+                                        : '${((expense / _monthlyBudget!.amount) * 100).clamp(0, 100).toStringAsFixed(0)}%',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                              backgroundColor: Colors.grey[300],
-                              valueColor: const AlwaysStoppedAnimation(
-                                Color(0xFF4CAF50),
-                              ),
-                              minHeight: 10,
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  _monthlyBudget == null
-                                      ? '0%'
-                                      : '${((expense / _monthlyBudget!.amount) * 100).clamp(0, 100).toStringAsFixed(0)}%',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
                                   ),
-                                ),
-                                Text(
-                                  'Rp 0 dari 0',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 13,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.lightbulb_outline,
-                                  color: Colors.amber[700],
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'Bagus! Pengeluaranmu masih terkontrol bulan ini.',
+                                  Text(
+                                    'Rp 0 dari 0',
                                     style: GoogleFonts.poppins(
                                       fontSize: 13,
-                                      color: Colors.grey[700],
+                                      color: Colors.grey[600],
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.lightbulb_outline,
+                                    color: Colors.amber[700],
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Bagus! Pengeluaranmu masih terkontrol bulan ini.',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 13,
+                                        color: Colors.grey[700],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -270,77 +281,88 @@ class _DashboardPageState extends State<DashboardPage> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Target Tabungan',
-                              style: GoogleFonts.poppins(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const SavingsPage(),
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Target Tabungan',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue[50],
-                                    borderRadius: BorderRadius.circular(12),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue[50],
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.flight,
+                                      color: Colors.blue,
+                                      size: 28,
+                                    ),
                                   ),
-                                  child: const Icon(
-                                    Icons.flight,
-                                    color: Colors.blue,
-                                    size: 28,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        firstGoal?.name ?? 'Belum ada target',
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          firstGoal?.name ?? 'Belum ada target',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
-                                      ),
-                                      Text(
-                                        '${fmt.format(saved)} / ${fmt.format(target)}',
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 13,
-                                          color: Colors.grey[600],
+                                        Text(
+                                          '${fmt.format(saved)} / ${fmt.format(target)}',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 13,
+                                            color: Colors.grey[600],
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  '${(progress * 100).toStringAsFixed(0)}%',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.grey[800],
+                                  Text(
+                                    '${(progress * 100).toStringAsFixed(0)}%',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey[800],
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            LinearProgressIndicator(
-                              value: progress,
-                              backgroundColor: Colors.grey[300],
-                              valueColor: const AlwaysStoppedAnimation(
-                                Color(0xFF4CAF50),
+                                ],
                               ),
-                              minHeight: 10,
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                          ],
+                              const SizedBox(height: 16),
+                              LinearProgressIndicator(
+                                value: progress,
+                                backgroundColor: Colors.grey[300],
+                                valueColor: const AlwaysStoppedAnimation(
+                                  Color(0xFF4CAF50),
+                                ),
+                                minHeight: 10,
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
