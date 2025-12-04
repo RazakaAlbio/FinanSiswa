@@ -1,80 +1,82 @@
 # FinanSiswa
 
-Aplikasi manajemen finansial sederhana untuk mahasiswa, fokus pada pencatatan transaksi, anggaran, tabungan, serta pengingat jatuh tempo. Mendukung tema dinamis (light/dark/system) dan backup/restore data.
+Aplikasi manajemen finansial sederhana untuk mahasiswa, fokus pada pencatatan transaksi, anggaran, tabungan, serta edukasi keuangan. Mendukung tema dinamis (light/dark/system) dan rekomendasi budget berdasarkan kota.
 
-## Deskripsi & Fitur
+## Fitur Utama
 
-- Manajemen transaksi harian dengan kategori dan jumlah.
-- Anggaran per kategori beserta progress realisasi.
-- Tabungan: target, progress, dan riwayat top-up.
-- Pengingat jatuh tempo dengan notifikasi lokal (Android/iOS). Fallback inexact alarm jika exact alarms tidak diizinkan.
-- Dashboard interaktif menggunakan `fl_chart` (bar & line chart).
-- Pengaturan: mata uang, tema (light/dark/system), backup & restore.
-- Lokalization `id_ID` dan `en_US`.
+### 1. Onboarding & Personalisasi
+- **Welcome Page**: Halaman sambutan yang ramah untuk pengguna baru.
+- **Rekomendasi Budget**: Pilih kota studi (Jakarta, Bandung, Yogyakarta, Surabaya) untuk mendapatkan rekomendasi budget bulanan yang sesuai.
+- **Atur Sendiri**: Opsi untuk mengatur nominal budget secara manual.
 
-## Instalasi & Setup
+### 2. Manajemen Keuangan
+- **Dashboard**: Ringkasan saldo, pengeluaran bulan ini, dan status budget.
+- **Transaksi**: Catat pemasukan dan pengeluaran dengan kategori yang relevan untuk mahasiswa (Makan, Transport, Akademik, dll).
+- **Laporan**: Visualisasi pengeluaran dalam bentuk Pie Chart.
 
-- Prasyarat: terpasang `Flutter` (3.9+) dan SDK platform (Android/iOS/Web).
-- Perintah dasar:
-  - `flutter pub get` untuk mengambil dependencies.
-  - `flutter run` untuk menjalankan aplikasi di emulator/perangkat.
-  - `flutter test` untuk menjalankan pengujian widget.
-- Android: pastikan Android SDK & emulator/USB debugging siap.
-- Web: jalankan `flutter run -d web-server` dan buka URL yang diberikan.
+### 3. Budgeting
+- **Budget Bulanan**: Atur limit pengeluaran per kategori.
+- **Budget Preset**: Terapkan template budget berdasarkan kota kapan saja melalui halaman Budget.
+- **Tracking**: Pantau realisasi budget dengan progress bar visual.
 
-## Dependencies (Pubspec)
+### 4. Tabungan (Savings)
+- **Target Tabungan**: Tetapkan tujuan menabung (misal: Beli Laptop, Liburan).
+- **Progress Tracking**: Pantau persentase pencapaian target.
+- **Add Funds**: Tambahkan nominal tabungan secara berkala.
+- **Deadline**: Set tanggal target tercapai.
 
-- `flutter_local_notifications: ^17.2.3` — notifikasi lokal lintas platform.
-- `shared_preferences: ^2.2.3` — penyimpanan preferensi ringan.
-- `sqflite: ^2.3.3` — database SQLite di Android/iOS.
-- `path_provider: ^2.1.3`, `path: ^1.9.0` — utilitas path.
-- `intl: ^0.20.2` — format angka/tanggal.
-- `fl_chart: ^0.69.0` — chart UI.
-- `provider: ^6.1.2` — state management.
-- `google_fonts: ^6.2.1` — font Poppins.
-- Dev: `flutter_test`, `flutter_lints: ^5.0.0`.
+### 5. Edukasi (Belajar)
+- **Artikel Pilihan**: Kumpulan artikel singkat tentang tips keuangan mahasiswa.
+- **Tips Cepat**: Kartu interaktif dengan tips praktis sehari-hari.
+- **Detail Artikel**: Bacaan lengkap dengan estimasi waktu baca.
 
-## Struktur Direktori
+### 6. Fitur Lainnya
+- **Tema Dinamis**: Dukungan Light Mode, Dark Mode, dan System Default.
+- **Notifikasi**: Pengingat harian untuk mencatat transaksi.
+- **Backup & Restore**: Simpan data ke file lokal untuk keamanan.
 
-- `lib/main.dart` — bootstrap aplikasi, provider, dan shell navigasi.
-- `lib/pages/` — halaman utama (`dashboard_page.dart`, `transactions_page.dart`, `budgets_page.dart`, `savings_page.dart`, `reminders_page.dart`, `settings_page.dart`).
-- `lib/repositories/` — akses data (`FinanceRepository`).
-- `lib/services/` — layanan utilitas (`preferences_service.dart`, `notification_service.dart`, `backup_service.dart`).
-- `lib/theme/` — tema M3 kustom (`app_theme.dart`).
-- `test/` — pengujian widget (smoke test, `show_date_picker_test.dart`).
-- `android/`, `ios/`, `web/`, `macos/`, `linux/` — aset & konfigurasi platform.
+## Instalasi & Build
 
-## Detail Implementasi Penting
+### Prasyarat
+- Flutter SDK (3.9+)
+- Android SDK / Xcode
 
-- Tema Dinamis:
-  - `PreferencesService` sekarang `ChangeNotifier` dan memanggil `notifyListeners()` saat `setTheme`.
-  - `MaterialApp` menggunakan `theme`, `darkTheme`, dan `themeMode` (light/dark/system) yang membaca `PreferencesService` melalui `Consumer`.
-  - `SettingsPage` menambahkan opsi tema `system` dan memperbarui preferensi secara langsung.
-- Pengingat & Exact Alarms:
-  - `AndroidManifest.xml` menambahkan permission `android.permission.SCHEDULE_EXACT_ALARM`.
-  - `NotificationService.scheduleReminderNotification` memakai `try/catch` dan fallback ke `AndroidScheduleMode.inexact` jika exact alarms tidak diizinkan.
-  - Penyesuaian jadwal jika `dueDate` lampau (menjadwalkan beberapa detik ke depan sebagai proteksi).
+### Menjalankan Aplikasi (Debug)
+```bash
+flutter pub get
+flutter run
+```
 
-## Pengujian
+### Membuat File APK (Android)
+Untuk membuat file instalasi Android (APK):
 
-- Widget test: jalankan `flutter test`. Meliputi smoke test dan `showDatePicker` pada berbagai kondisi layar.
-- Manual:
-  - Uji tema pada Settings: pilih `Light`, `Dark`, dan `System` lalu verifikasi konsistensi di setiap halaman.
-  - Android 12/13+: uji pengingat. Jika muncul error "Exact alarms are not permitted", konfirmasi fallback berjalan (notifikasi tetap terjadwal).
+```bash
+flutter build apk --release
+```
+File APK akan tersedia di: `build/app/outputs/flutter-apk/app-release.apk`
 
-## Kontribusi
+## Struktur Project
 
-- Gunakan branching feature (`feat/…`) dan buat PR dengan deskripsi jelas.
-- Ikuti gaya kode yang konsisten (Material 3, Provider, lints aktif).
-- Tambahkan pengujian untuk fitur baru bila memungkinkan.
-- Diskusikan perubahan yang memengaruhi arsitektur sebelum implementasi.
+- `lib/main.dart`: Entry point dan konfigurasi tema/route.
+- `lib/pages/`: Berisi halaman-halaman UI (Welcome, Dashboard, Budget, Belajar, dll).
+- `lib/models/`: Model data (Transaction, Budget, Article, dll).
+- `lib/repositories/`: Logika penyimpanan data (SQLite/SharedPrefs).
+- `lib/services/`: Service pendukung (Preferences, Notification).
+- `lib/theme/`: Konfigurasi tema aplikasi.
 
-### Code of Conduct
+## Dependencies Utama
 
-- Berkomunikasi dengan hormat, inklusif, dan kolaboratif.
-- Hindari perilaku ofensif, diskriminatif, atau mengganggu.
-- Terima masukan teknis dan berikan umpan balik secara konstruktif.
+- `provider`: State management.
+- `fl_chart`: Visualisasi grafik.
+- `shared_preferences`: Penyimpanan setting sederhana.
+- `sqflite`: Database lokal untuk transaksi.
+- `flutter_markdown`: Rendering artikel.
+- `google_fonts`: Tipografi (Poppins).
+- `flutter_local_notifications`: Sistem notifikasi.
 
-## Lisensi
+## Catatan Rilis (Terbaru)
 
-- Lisensi: MIT. Anda bebas menggunakan, memodifikasi, dan mendistribusikan dengan mencantumkan atribusi.
+- **[FIX]** Mengatasi crash `LateInitializationError` pada startup.
+- **[FIX]** Memperbaiki tombol dan kartu yang tidak responsif di halaman Welcome dan Budget.
+- **[NEW]** Menambahkan halaman Edukasi Keuangan.
+- **[NEW]** Implementasi fitur Budget Preset berdasarkan kota.

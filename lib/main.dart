@@ -23,6 +23,7 @@ import 'package:uas/pages/welcome_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  print('FinanSiswa: App Started with Fixes');
   runApp(const MyApp());
 }
 

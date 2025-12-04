@@ -353,6 +353,7 @@ class _BudgetsPageState extends State<BudgetsPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
+                  clipBehavior: Clip.antiAlias,
                   child: InkWell(
                     onTap: _applyPreset,
                     borderRadius: BorderRadius.circular(16),
