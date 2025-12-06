@@ -73,7 +73,7 @@ class _MyAppState extends State<MyApp> {
           final themeMode = switch (p.theme) {
             'dark' => ThemeMode.dark,
             'light' => ThemeMode.light,
-            _ => ThemeMode.system,
+            _ => ThemeMode.light,
           };
           return MaterialApp(
             title: 'FinanSiswa',
