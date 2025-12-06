@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uas/repositories/finance_repository.dart';
 import 'package:uas/services/backup_service.dart';
 import 'package:uas/services/preferences_service.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 
 /// Halaman Pengaturan: mata uang, tema, backup/restore
 class SettingsPage extends StatefulWidget {
@@ -29,18 +32,38 @@ class _SettingsPageState extends State<SettingsPage> {
     final repo = context.read<FinanceRepository>();
     final backup = await BackupService().exportBackupJson(repo);
     final path = await BackupService().saveBackupToFile(backup);
+    
     if (!mounted) return;
+    
+    if (path == null) {
+      // User canceled
+      return;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(path.startsWith('web://') ? 'Backup siap diunduh melalui UI' : 'Backup disimpan: $path')),
     );
   }
 
+
+
   Future<void> _restore() async {
-    final repo = context.read<FinanceRepository>();
-    final payload = await BackupService().readBackupFromFile();
-    await BackupService().restoreFromPayload(repo, payload);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Restore selesai')));
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
+
+    if (result != null && result.files.single.path != null) {
+      final file = File(result.files.single.path!);
+      final jsonString = await file.readAsString();
+      final Map<String, dynamic> payload = jsonDecode(jsonString);
+      
+      final repo = context.read<FinanceRepository>();
+      await BackupService().restoreFromPayload(repo, payload);
+      
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Restore selesai')));
+    }
   }
 
   @override
@@ -66,30 +89,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           const Divider(),
-          ListTile(
-            title: const Text('Tema'),
-            subtitle: Text(
-              switch (_theme) {
-                'light' => 'Terang',
-                'dark' => 'Gelap',
-                _ => 'Ikuti sistem',
-              },
-            ),
-            trailing: DropdownButton<String>(
-              value: _theme,
-              items: const [
-                DropdownMenuItem(value: 'system', child: Text('Ikuti sistem')),
-                DropdownMenuItem(value: 'light', child: Text('Terang')),
-                DropdownMenuItem(value: 'dark', child: Text('Gelap')),
-              ],
-              onChanged: (v) async {
-                if (v == null) return;
-                setState(() => _theme = v);
-                await prefs.setTheme(v);
-              },
-            ),
-          ),
-          const Divider(),
+          // Theme setting removed as requested
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(

@@ -11,6 +11,7 @@ import 'package:uas/repositories/savings_repository.dart';
 import 'package:uas/pages/transaction_form_page.dart';
 import 'package:uas/pages/savings_page.dart';
 import 'package:uas/pages/budgets_page.dart';
+import 'package:uas/models/budget.dart'; // Import Budget model
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -23,6 +24,7 @@ class _DashboardPageState extends State<DashboardPage> {
   List<FinanceTransaction> _txns = [];
   MonthlyBudget? _monthlyBudget;
   List<SavingGoal> _savingsGoals = [];
+  List<Budget> _budgets = [];
 
   @override
   void initState() {
@@ -37,18 +39,21 @@ class _DashboardPageState extends State<DashboardPage> {
 
     final txns = await repo.listTransactions();
     final budget = await budgetRepo.getCurrentMonthBudget();
-    final goals = await savingsRepo.getSavingsTargets();
+    final goals = await repo.listSavingGoals();
+
+    final budgets = await repo.listBudgets();
 
     setState(() {
       _txns = txns;
       _monthlyBudget = budget;
       _savingsGoals = goals;
+      _budgets = budgets;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ');
+    final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
     final income = _txns
         .where((t) => t.type == TransactionType.income)
         .fold<double>(0, (s, t) => s + t.amount);
@@ -183,189 +188,315 @@ class _DashboardPageState extends State<DashboardPage> {
                     const SizedBox(height: 32),
 
                     // BUDGET BULANAN
-                    Card(
-                      elevation: 3,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const BudgetsPage(),
+                      Card(
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const BudgetsPage(),
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(16),
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Budget Bulanan',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                // Expense Progress
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('Pengeluaran', style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600])),
+                                    Text(
+                                      _monthlyBudget == null ? '0%' : '${((expense / _monthlyBudget!.amount) * 100).clamp(0, 100).toStringAsFixed(0)}%',
+                                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                LinearProgressIndicator(
+                                  value: _monthlyBudget == null
+                                      ? 0
+                                      : (expense / _monthlyBudget!.amount).clamp(0.0, 1.0),
+                                  backgroundColor: Colors.grey[300],
+                                  valueColor: const AlwaysStoppedAnimation(Colors.red),
+                                  minHeight: 8,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                const SizedBox(height: 12),
+                                // Income Progress
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('Pemasukan', style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600])),
+                                    Text(
+                                      _monthlyBudget == null ? '0%' : '${((income / _monthlyBudget!.amount) * 100).clamp(0, 100).toStringAsFixed(0)}%',
+                                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                LinearProgressIndicator(
+                                  value: _monthlyBudget == null
+                                      ? 0
+                                      : (income / _monthlyBudget!.amount).clamp(0.0, 1.0),
+                                  backgroundColor: Colors.grey[300],
+                                  valueColor: const AlwaysStoppedAnimation(Colors.green),
+                                  minHeight: 8,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Budget: ${fmt.format(_monthlyBudget?.amount ?? 0)}',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    color: Colors.grey[600],
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(16),
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Budget Bulanan',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              LinearProgressIndicator(
-                                value: _monthlyBudget == null
-                                    ? 0
-                                    : (expense / _monthlyBudget!.amount).clamp(
-                                        0.0,
-                                        1.0,
-                                      ),
-                                backgroundColor: Colors.grey[300],
-                                valueColor: const AlwaysStoppedAnimation(
-                                  Color(0xFF4CAF50),
-                                ),
-                                minHeight: 10,
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                              const SizedBox(height: 12),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    _monthlyBudget == null
-                                        ? '0%'
-                                        : '${((expense / _monthlyBudget!.amount) * 100).clamp(0, 100).toStringAsFixed(0)}%',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Rp 0 dari 0',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 13,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.lightbulb_outline,
-                                    color: Colors.amber[700],
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      'Bagus! Pengeluaranmu masih terkontrol bulan ini.',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 13,
-                                        color: Colors.grey[700],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
                           ),
                         ),
                       ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // TARGET TABUNGAN
-                    Card(
-                      elevation: 3,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const SavingsPage(),
-                            ),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(16),
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Target Tabungan',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  Container(
+                      
+                      const SizedBox(height: 20),
+                      
+                      // INDIVIDUAL BUDGETS LIST
+                      if (_budgets.isNotEmpty) ...[
+                        Text(
+                          'Daftar Anggaran',
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: 140,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _budgets.length,
+                            itemBuilder: (context, index) {
+                              final b = _budgets[index];
+                              // Calculate spent for this budget
+                              final bSpent = _txns
+                                  .where((t) => 
+                                      t.type == TransactionType.expense && 
+                                      t.category.toLowerCase() == b.name.toLowerCase())
+                                  .fold(0.0, (sum, t) => sum + t.amount);
+                              final bProgress = b.amount > 0 ? (bSpent / b.amount).clamp(0.0, 1.0) : 0.0;
+                              
+                              return Container(
+                                width: 160,
+                                margin: const EdgeInsets.only(right: 12),
+                                child: Card(
+                                  elevation: 2,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  child: Padding(
                                     padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue[50],
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Icon(
-                                      Icons.flight,
-                                      color: Colors.blue,
-                                      size: 28,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         Text(
-                                          firstGoal?.name ?? 'Belum ada target',
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                          b.name,
+                                          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
+                                        const SizedBox(height: 8),
                                         Text(
-                                          '${fmt.format(saved)} / ${fmt.format(target)}',
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 13,
-                                            color: Colors.grey[600],
+                                          fmt.format(b.amount),
+                                          style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        LinearProgressIndicator(
+                                          value: bProgress,
+                                          backgroundColor: Colors.grey[200],
+                                          valueColor: AlwaysStoppedAnimation(
+                                            bProgress > 0.8 ? Colors.red : Colors.blue,
                                           ),
+                                          minHeight: 6,
+                                          borderRadius: BorderRadius.circular(3),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${(bProgress * 100).toStringAsFixed(0)}% Used',
+                                          style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey[600]),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  Text(
-                                    '${(progress * 100).toStringAsFixed(0)}%',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.grey[800],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              LinearProgressIndicator(
-                                value: progress,
-                                backgroundColor: Colors.grey[300],
-                                valueColor: const AlwaysStoppedAnimation(
-                                  Color(0xFF4CAF50),
                                 ),
-                                minHeight: 10,
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                            ],
+                              );
+                            },
                           ),
                         ),
+                        const SizedBox(height: 20),
+                      ],
+
+                    const SizedBox(height: 20),
+
+                    // TARGET TABUNGAN
+                    // TARGET TABUNGAN LIST
+                    if (_savingsGoals.isNotEmpty) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Target Tabungan',
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const SavingsPage(),
+                              ),
+                            ),
+                            child: const Text('Lihat Semua'),
+                          ),
+                        ],
                       ),
-                    ),
+                      const SizedBox(height: 8),
+                      ..._savingsGoals.map((goal) {
+                        final saved = goal.savedAmount;
+                        final target = goal.targetAmount > 0 ? goal.targetAmount : 1.0;
+                        final progress = saved / target;
+                        
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: Card(
+                            elevation: 3,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: InkWell(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const SavingsPage(),
+                                  ),
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(16),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 20,
+                                          backgroundColor: const Color(0xFF00BFA5).withOpacity(0.1),
+                                          child: const Icon(Icons.flight, color: Color(0xFF00BFA5), size: 24),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            goal.name,
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                        Text(
+                                          '${(progress * 100).clamp(0, 100).toStringAsFixed(0)}%',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.grey[800],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    LinearProgressIndicator(
+                                      value: progress.clamp(0.0, 1.0),
+                                      backgroundColor: Colors.grey[200],
+                                      valueColor: const AlwaysStoppedAnimation(Color(0xFF4CAF50)),
+                                      minHeight: 8,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          fmt.format(saved),
+                                          style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[800]),
+                                        ),
+                                        Text(
+                                          fmt.format(target),
+                                          style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[800]),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          'Sisa: ${fmt.format(target - saved)}',
+                                          style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]),
+                                        ),
+                                        if (goal.deadline != null)
+                                          Text(
+                                            'Tenggat: ${DateFormat('dd MMM yyyy', 'id_ID').format(goal.deadline!)}',
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
+                                              color: Colors.red[400],
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ] else ...[
+                       // Empty state or just the shortcut card
+                       Card(
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: InkWell(
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SavingsPage())),
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Center(
+                              child: Text('Belum ada target tabungan. Buat sekarang!', style: GoogleFonts.poppins()),
+                            ),
+                          ),
+                        ),
+                       ),
+                    ],
 
                     const SizedBox(height: 100), // biar bisa scroll ke bawah
                   ],
@@ -384,6 +515,7 @@ class _DashboardPageState extends State<DashboardPage> {
     required String amount,
   }) {
     return Container(
+      width: double.infinity, // Ensure full width in Expanded
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.25),
@@ -417,9 +549,13 @@ class _DashboardPageState extends State<DashboardPage> {
       onTap: onTap,
       child: Column(
         children: [
-          CircleAvatar(
-            radius: 32,
-            backgroundColor: const Color(0xFF00BFA5).withOpacity(0.15),
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: const Color(0xFF00BFA5).withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
             child: Icon(icon, size: 32, color: const Color(0xFF00BFA5)),
           ),
           const SizedBox(height: 10),

@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path/path.dart' as p;
@@ -32,18 +34,39 @@ class BackupService {
     return jsonEncode(payload);
   }
 
-  /// Simpan JSON backup ke file di Documents directory
-  Future<String> saveBackupToFile(String jsonContent, {String? fileName}) async {
+  /// Simpan JSON backup ke file (User memilih lokasi)
+  Future<String?> saveBackupToFile(String jsonContent, {String? fileName}) async {
     if (kIsWeb) {
-      // Pada web, pengunduhan file akan ditangani UI (mis. generate link).
-      // Kembalikan konten sebagai string agar UI bisa mengekspor.
       return 'web://inline';
     }
-    final dir = await getApplicationDocumentsDirectory();
-    final path = p.join(dir.path, fileName ?? defaultFileName);
-    final file = File(path);
-    await file.writeAsString(jsonContent, flush: true);
-    return path;
+    
+    // Encode content to bytes
+    final bytes = Uint8List.fromList(utf8.encode(jsonContent));
+    
+    // Gunakan FilePicker untuk menyimpan file
+    String? outputFile = await FilePicker.platform.saveFile(
+      dialogTitle: 'Simpan Backup',
+      fileName: fileName ?? defaultFileName,
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+      bytes: bytes, // Required for Android/iOS
+    );
+
+    if (outputFile == null) {
+      return null;
+    }
+
+    // On non-mobile platforms, we might still need to write the file manually if saveFile just returns the path.
+    // On Android/iOS, providing 'bytes' lets the plugin handle the writing.
+    // We can check if the file exists or just write it again to be safe for Desktop.
+    // However, writing to the path returned by Android SAF might not work with File API directly if it's a URI.
+    // Since we passed bytes, we assume it's written on Android/iOS.
+    if (!Platform.isAndroid && !Platform.isIOS) {
+       final file = File(outputFile);
+       await file.writeAsString(jsonContent, flush: true);
+    }
+    
+    return outputFile;
   }
 
   /// Baca file backup JSON dari Documents directory

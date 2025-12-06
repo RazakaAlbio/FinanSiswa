@@ -3,7 +3,10 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uas/models/transaction.dart';
 import 'package:uas/models/category.dart';
+import 'package:uas/models/category.dart';
+import 'package:uas/models/saving_goal.dart';
 import 'package:uas/repositories/category_repository.dart';
+import 'package:uas/repositories/finance_repository.dart';
 import 'package:uas/pages/categories_page.dart';
 
 /// Form transaksi dengan validasi input
@@ -19,20 +22,31 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
   final _amountCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
   TransactionType _type = TransactionType.expense;
+  String _uiType = 'expense'; // 'income', 'expense', 'savings'
   DateTime _date = DateTime.now();
   List<Category> _categories = [];
+  List<SavingGoal> _savingGoals = [];
   String? _selectedCategoryId;
+  int? _selectedSavingGoalId;
 
+  @override
   @override
   void initState() {
     super.initState();
     _loadCategories();
+    _loadSavingGoals();
   }
 
   Future<void> _loadCategories() async {
     final repo = context.read<CategoryRepository>();
     final items = await repo.getCategories();
     setState(() => _categories = items);
+  }
+
+  Future<void> _loadSavingGoals() async {
+    final repo = context.read<FinanceRepository>();
+    final items = await repo.listSavingGoals();
+    setState(() => _savingGoals = items);
   }
 
   @override
@@ -52,24 +66,47 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
     if (picked != null) setState(() => _date = picked);
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final amount = double.parse(_amountCtrl.text.replaceAll(',', '.'));
-    final categoryName = _categories.firstWhere((c) => c.id == _selectedCategoryId).name;
     
-    final txn = FinanceTransaction(
-      amount: amount,
-      category: categoryName,
-      type: _type,
-      date: _date,
-      note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
-    );
-    Navigator.of(context).pop(txn);
+    if (_uiType == 'savings') {
+       // Handle Savings Transaction
+       if (_selectedSavingGoalId == null) return;
+       final goal = _savingGoals.firstWhere((g) => g.id == _selectedSavingGoalId);
+       
+       // Update Saving Goal
+       final repo = context.read<FinanceRepository>();
+       final updatedGoal = goal.copyWith(savedAmount: goal.savedAmount + amount);
+       await repo.updateSavingGoal(updatedGoal);
+
+       // Create Transaction
+       final txn = FinanceTransaction(
+         amount: amount,
+         category: 'Tabungan',
+         type: TransactionType.expense,
+         date: _date,
+         note: _noteCtrl.text.trim().isEmpty ? 'Tabungan: ${goal.name}' : _noteCtrl.text.trim(),
+       );
+       if (!mounted) return;
+       Navigator.of(context).pop(txn);
+    } else {
+      // Normal Transaction
+      final categoryName = _categories.firstWhere((c) => c.id == _selectedCategoryId).name;
+      final txn = FinanceTransaction(
+        amount: amount,
+        category: categoryName,
+        type: _type,
+        date: _date,
+        note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
+      );
+      Navigator.of(context).pop(txn);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp');
+    final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tambah Transaksi'),
@@ -82,24 +119,24 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
           key: _formKey,
           child: ListView(
             children: [
-              DropdownButtonFormField<TransactionType>(
-                value: _type,
+              DropdownButtonFormField<String>(
+                value: _uiType,
                 decoration: const InputDecoration(
                   labelText: 'Tipe',
                   border: OutlineInputBorder(),
                 ),
                 items: const [
-                  DropdownMenuItem(
-                    value: TransactionType.income,
-                    child: Text('Pemasukan'),
-                  ),
-                  DropdownMenuItem(
-                    value: TransactionType.expense,
-                    child: Text('Pengeluaran'),
-                  ),
+                  DropdownMenuItem(value: 'income', child: Text('Pemasukan')),
+                  DropdownMenuItem(value: 'expense', child: Text('Pengeluaran')),
+                  DropdownMenuItem(value: 'savings', child: Text('Tabungan')),
                 ],
-                onChanged: (v) =>
-                    setState(() => _type = v ?? TransactionType.expense),
+                onChanged: (v) {
+                  setState(() {
+                    _uiType = v ?? 'expense';
+                    if (_uiType == 'income') _type = TransactionType.income;
+                    else _type = TransactionType.expense;
+                  });
+                },
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -122,46 +159,67 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
               ),
               const SizedBox(height: 16),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: _selectedCategoryId,
-                      decoration: const InputDecoration(
-                        labelText: 'Kategori',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: _categories
-                          .where((c) => c.type == _type)
-                          .map((c) => DropdownMenuItem(
-                                value: c.id,
-                                child: Row(
-                                  children: [
-                                    Icon(c.icon, size: 18, color: c.color),
-                                    const SizedBox(width: 8),
-                                    Text(c.name),
-                                  ],
-                                ),
-                              ))
-                          .toList(),
-                      onChanged: (v) => setState(() => _selectedCategoryId = v),
-                      validator: (v) => v == null ? 'Pilih kategori' : null,
+              if (_uiType == 'savings')
+                if (_savingGoals.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Text('Belum ada target tabungan. Buat target terlebih dahulu di menu Tabungan.', style: TextStyle(color: Colors.red)),
+                  )
+                else
+                  DropdownButtonFormField<int>(
+                    value: _savingGoals.any((g) => g.id == _selectedSavingGoalId) ? _selectedSavingGoalId : null,
+                    decoration: const InputDecoration(
+                      labelText: 'Target Tabungan',
+                      border: OutlineInputBorder(),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    icon: const Icon(Icons.settings, color: Color(0xFF00BFA5)),
-                    onPressed: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const CategoriesPage()),
-                      );
-                      _loadCategories();
-                    },
-                    tooltip: 'Kelola Kategori',
-                  ),
-                ],
-              ),
+                    items: _savingGoals.map((g) => DropdownMenuItem(
+                      value: g.id,
+                      child: Text(g.name),
+                    )).toList(),
+                    onChanged: (v) => setState(() => _selectedSavingGoalId = v),
+                    validator: (v) => v == null ? 'Pilih target tabungan' : null,
+                  )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedCategoryId,
+                        decoration: const InputDecoration(
+                          labelText: 'Kategori',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: _categories
+                            .where((c) => c.type == _type)
+                            .map((c) => DropdownMenuItem(
+                                  value: c.id,
+                                  child: Row(
+                                    children: [
+                                      Icon(c.icon, size: 18, color: c.color),
+                                      const SizedBox(width: 8),
+                                      Text(c.name),
+                                    ],
+                                  ),
+                                ))
+                            .toList(),
+                        onChanged: (v) => setState(() => _selectedCategoryId = v),
+                        validator: (v) => v == null ? 'Pilih kategori' : null,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.settings, color: Color(0xFF00BFA5)),
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const CategoriesPage()),
+                        );
+                        _loadCategories();
+                      },
+                      tooltip: 'Kelola Kategori',
+                    ),
+                  ],
+                ),
               const SizedBox(height: 16),
               ListTile(
                 contentPadding: EdgeInsets.zero,

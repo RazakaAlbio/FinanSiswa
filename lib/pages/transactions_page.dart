@@ -111,7 +111,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
 
  @override
   Widget build(BuildContext context) {
-    final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp');
+    final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
 
     final pieSections = _categoryExpenses.entries.map((entry) {
       final color = _getCategoryColor(entry.key);
@@ -430,13 +430,13 @@ class _TransactionsPageState extends State<TransactionsPage> {
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
-            Text(
-              change,
-              style: TextStyle(
-                fontSize: 12,
-                color: changePositive ? Colors.green : Colors.red,
-              ),
-            ),
+            // Text(
+            //   change,
+            //   style: TextStyle(
+            //     fontSize: 12,
+            //     color: changePositive ? Colors.green : Colors.red,
+            //   ),
+            // ),
           ],
         ),
       ),

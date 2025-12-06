@@ -237,7 +237,7 @@ class _BudgetsPageState extends State<BudgetsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp');
+    final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -318,25 +318,74 @@ class _BudgetsPageState extends State<BudgetsPage> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
+                        
+                        // Expense Progress
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Pengeluaran', style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600])),
+                            Text(
+                              _monthlyBudget == null ? '0%' : '${((_monthlyBudget!.spentAmount / _monthlyBudget!.amount) * 100).clamp(0, 100).toStringAsFixed(0)}%',
+                              style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
                         LinearProgressIndicator(
                           value: _monthlyBudget == null
                               ? 0
                               : (_monthlyBudget!.spentAmount / _monthlyBudget!.amount).clamp(0.0, 1.0),
                           backgroundColor: Colors.grey[200],
-                          valueColor: const AlwaysStoppedAnimation(
-                            Color(0xFF4CAF50),
-                          ),
+                          valueColor: const AlwaysStoppedAnimation(Colors.red),
                           minHeight: 8,
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 4),
                         Text(
-                          'Terpakai ${fmt.format(_monthlyBudget?.spentAmount ?? 0)} (${(_monthlyBudget?.percentage ?? 0).toStringAsFixed(1)}%)',
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
+                          'Terpakai ${fmt.format(_monthlyBudget?.spentAmount ?? 0)}',
+                          style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey[600]),
+                        ),
+                        
+                        const SizedBox(height: 12),
+                        
+                        // Income Progress (Need to calculate income first)
+                        Builder(
+                          builder: (context) {
+                            final income = _transactions
+                                .where((t) => t.type == TransactionType.income)
+                                .fold(0.0, (sum, t) => sum + t.amount);
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('Pemasukan', style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600])),
+                                    Text(
+                                      _monthlyBudget == null ? '0%' : '${((income / _monthlyBudget!.amount) * 100).clamp(0, 100).toStringAsFixed(0)}%',
+                                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                LinearProgressIndicator(
+                                  value: _monthlyBudget == null
+                                      ? 0
+                                      : (income / _monthlyBudget!.amount).clamp(0.0, 1.0),
+                                  backgroundColor: Colors.grey[200],
+                                  valueColor: const AlwaysStoppedAnimation(Colors.green),
+                                  minHeight: 8,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Terkumpul ${fmt.format(income)}',
+                                  style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey[600]),
+                                ),
+                              ],
+                            );
+                          }
                         ),
                       ],
                     ),

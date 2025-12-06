@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:uas/models/transaction.dart';
+import 'package:uas/models/category.dart';
+import 'package:uas/repositories/category_repository.dart';
+import 'package:provider/provider.dart';
 
 /// Halaman detail transaksi untuk melihat, edit, dan menghapus
 class TransactionDetailPage extends StatefulWidget {
@@ -27,6 +30,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
   final _noteCtrl = TextEditingController();
   late TransactionType _type;
   late DateTime _date;
+  List<Category> _categories = [];
 
   bool _isEditing = false;
 
@@ -35,6 +39,13 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
     super.initState();
     _transaction = widget.transaction;
     _initializeForm();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    final repo = context.read<CategoryRepository>();
+    final items = await repo.getCategories();
+    setState(() => _categories = items);
   }
 
   void _initializeForm() {
@@ -114,7 +125,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
   }
 
   Widget _buildReadOnlyView() {
-    final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp');
+    final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -256,15 +267,34 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
             },
           ),
           const SizedBox(height: 16),
-          TextFormField(
-            controller: _categoryCtrl,
+          DropdownButtonFormField<String>(
+            value: _categories.any((c) => c.name == _categoryCtrl.text)
+                ? _categories.firstWhere((c) => c.name == _categoryCtrl.text).id
+                : null,
             decoration: const InputDecoration(
               labelText: 'Kategori',
               border: OutlineInputBorder(),
             ),
-            validator: (v) => (v == null || v.trim().length < 2)
-                ? 'Kategori minimal 2 karakter'
-                : null,
+            items: _categories
+                .where((c) => c.type == _type)
+                .map((c) => DropdownMenuItem(
+                      value: c.id,
+                      child: Row(
+                        children: [
+                          Icon(c.icon, size: 18, color: c.color),
+                          const SizedBox(width: 8),
+                          Text(c.name),
+                        ],
+                      ),
+                    ))
+                .toList(),
+            onChanged: (v) {
+              if (v != null) {
+                final cat = _categories.firstWhere((c) => c.id == v);
+                setState(() => _categoryCtrl.text = cat.name);
+              }
+            },
+            validator: (v) => _categoryCtrl.text.isEmpty ? 'Pilih kategori' : null,
           ),
           const SizedBox(height: 16),
           ListTile(

@@ -92,7 +92,7 @@ class _BudgetDetailPageState extends State<BudgetDetailPage> {
   }
 
   Widget _buildReadOnlyView() {
-    final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ');
+    final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

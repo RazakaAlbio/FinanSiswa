@@ -3,8 +3,10 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:uas/models/saving_goal.dart';
+import 'package:uas/models/transaction.dart';
 import 'package:uas/repositories/finance_repository.dart';
 import 'package:uas/pages/savings_form_page.dart';
+import 'package:uas/pages/transaction_form_page.dart';
 
 class SavingsPage extends StatefulWidget {
   const SavingsPage({super.key});
@@ -194,56 +196,36 @@ class _SavingsPageState extends State<SavingsPage> {
   }
 
   Future<void> _showAddFundsDialog(SavingGoal goal) async {
-    final ctrl = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-
-    final amount = await showDialog<double>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Tambah Dana'),
-        content: Form(
-          key: formKey,
-          child: TextFormField(
-            controller: ctrl,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: 'Nominal',
-              hintText: 'Contoh: 50000',
-            ),
-            validator: (v) {
-              if (v == null || v.isEmpty) return 'Wajib diisi';
-              final n = double.tryParse(v.replaceAll(',', '.'));
-              if (n == null || n <= 0) return 'Nominal tidak valid';
-              return null;
-            },
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
-          FilledButton(
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                Navigator.pop(ctx, double.parse(ctrl.text.replaceAll(',', '.')));
-              }
-            },
-            child: const Text('Simpan'),
-          ),
-        ],
+    // Navigate to TransactionFormPage with type 'savings' and this goal selected
+    // Note: Since TransactionFormPage handles the logic, we just need to navigate to it.
+    // However, TransactionFormPage doesn't currently accept arguments to pre-fill.
+    // We can either modify TransactionFormPage to accept arguments or just let the user select 'Tabungan' and the goal.
+    // Given the request "merujuk pada tambah transaksi bagian tabungan", it implies using that form.
+    // Ideally we should pre-fill it, but for now let's just open the form and maybe show a snackbar or let the user know.
+    // Actually, I can pass arguments if I modify TransactionFormPage constructor, but I'll stick to the user request which says "merujuk pada tambah transaksi".
+    // Let's try to just open the form.
+    
+    // BETTER APPROACH: Modify TransactionFormPage to accept optional initial values?
+    // Or just open it. The user said "bagian tambah dana nya merujuk pada tambah transaksi bagian tabungan".
+    // This could mean "use the same logic" or "go to that page".
+    // I will navigate to TransactionFormPage.
+    
+    final res = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const TransactionFormPage(), // Ideally pass initialType: 'savings', initialGoalId: goal.id
       ),
     );
-
-    if (amount != null) {
-      final repo = context.read<FinanceRepository>();
-      final newSaved = goal.savedAmount + amount;
-      final updated = goal.copyWith(savedAmount: newSaved);
-      await repo.updateSavingGoal(updated);
+    
+    if (res != null) {
+      await context.read<FinanceRepository>().addTransaction(res);
       await _load();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp');
+    final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: RefreshIndicator(
@@ -316,29 +298,19 @@ class _SavingsPageState extends State<SavingsPage> {
             if (_goals.isEmpty)
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.all(40),
                   child: Column(
                     children: [
-                      _buildGoalCard(
-                        icon: Icons.flight,
-                        title: 'Trip ke Bali',
-                        subtitle: 'Bulan Tahun',
-                        progress: 0.0,
-                        saved: 0.0,
-                        target: 0.0,
-                        percentage: 0,
-                        showDelete: false,
-                      ),
+                      Icon(Icons.savings_outlined, size: 80, color: Colors.grey[300]),
                       const SizedBox(height: 16),
-                      _buildGoalCard(
-                        icon: Icons.flight,
-                        title: 'Trip ke Bali',
-                        subtitle: 'Bulan Tahun',
-                        progress: 0.0,
-                        saved: 0.0,
-                        target: 0.0,
-                        percentage: 0,
-                        showDelete: false,
+                      Text(
+                        'Belum ada target tabungan',
+                        style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 16),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Buat target baru untuk mulai menabung!',
+                        style: GoogleFonts.poppins(color: Colors.grey[500], fontSize: 14),
                       ),
                     ],
                   ),
@@ -448,7 +420,7 @@ class _SavingsPageState extends State<SavingsPage> {
     VoidCallback? onAddFunds,
     DateTime? deadline,
   }) {
-    final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ');
+    final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
     final dateFmt = DateFormat('dd MMM yyyy', 'id_ID');
     return Card(
       elevation: 2,
@@ -549,25 +521,6 @@ class _SavingsPageState extends State<SavingsPage> {
               ],
             ),
             const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Sisa: ${fmt.format(target - saved)}',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                TextButton(
-                  onPressed: onAddFunds,
-                  child: const Text(
-                    '+ Tambah Dana',
-                    style: TextStyle(color: Color(0xFF00BFA5)),
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
       ),

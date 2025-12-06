@@ -46,6 +46,7 @@ dependencies:
   flutter_local_notifications: ^17.2.3
   google_fonts: ^6.2.1
   flutter_markdown: ^0.6.18
+  file_picker: ^8.0.0
 
 dev_dependencies:
   flutter_test:

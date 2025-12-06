@@ -3,6 +3,9 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uas/models/budget.dart';
 import 'package:uas/repositories/finance_repository.dart';
+import 'package:uas/repositories/category_repository.dart';
+import 'package:uas/models/category.dart';
+import 'package:uas/models/transaction.dart'; // for TransactionType
 import 'package:uas/theme/app_theme.dart';
 
 class BudgetFormPage extends StatefulWidget {
@@ -20,6 +23,22 @@ class _BudgetFormPageState extends State<BudgetFormPage> {
   DateTime _start = DateTime.now();
   DateTime? _end;
   bool _submitting = false;
+  List<Category> _categories = [];
+  String? _selectedCategoryId;
+  bool _isCustomCategory = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    final repo = context.read<CategoryRepository>();
+    final items = await repo.getCategories();
+    // Filter only Expense categories for Budget
+    setState(() => _categories = items.where((c) => c.type == TransactionType.expense).toList());
+  }
 
   String? _validateAmount(String? v) {
     if (v == null || v.trim().isEmpty) return 'Nominal wajib diisi';
@@ -54,8 +73,10 @@ class _BudgetFormPageState extends State<BudgetFormPage> {
     try {
       final repo = context.read<FinanceRepository>();
       final amt = double.parse(_amountCtrl.text.replaceAll(',', '.'));
+      final budgetName = _isCustomCategory ? _nameCtrl.text.trim() : _categories.firstWhere((c) => c.id == _selectedCategoryId).name;
+      
       final budget = Budget(
-        name: _nameCtrl.text.trim(),
+        name: budgetName,
         amount: amt,
         period: _period,
         startDate: _start,
@@ -85,11 +106,53 @@ class _BudgetFormPageState extends State<BudgetFormPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextFormField(
-                controller: _nameCtrl,
-                decoration: const InputDecoration(labelText: 'Nama Anggaran'),
-                validator: (v) => (v == null || v.trim().length < 3) ? 'Nama minimal 3 karakter' : null,
+              DropdownButtonFormField<String>(
+                value: _selectedCategoryId,
+                decoration: const InputDecoration(labelText: 'Kategori'),
+                items: [
+                  ..._categories.map((c) => DropdownMenuItem(
+                    value: c.id,
+                    child: Row(
+                      children: [
+                        Icon(c.icon, size: 18, color: c.color),
+                        const SizedBox(width: 8),
+                        Text(c.name),
+                      ],
+                    ),
+                  )),
+                  const DropdownMenuItem(
+                    value: 'custom',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit, size: 18, color: Colors.grey),
+                        const SizedBox(width: 8),
+                        Text('Custom'),
+                      ],
+                    ),
+                  ),
+                ],
+                onChanged: (v) {
+                  setState(() {
+                    _selectedCategoryId = v;
+                    _isCustomCategory = v == 'custom';
+                    if (v != null && v != 'custom') {
+                      final cat = _categories.firstWhere((c) => c.id == v);
+                      _nameCtrl.text = cat.name;
+                    } else if (v == 'custom') {
+                      _nameCtrl.clear();
+                    }
+                  });
+                },
+                validator: (v) => v == null ? 'Pilih kategori' : null,
               ),
+              if (_isCustomCategory) ...[
+                const SizedBox(height: AppSpacing.md),
+                TextFormField(
+                  controller: _nameCtrl,
+                  decoration: const InputDecoration(labelText: 'Nama Anggaran Custom'),
+                  validator: (v) => (v == null || v.trim().length < 3) ? 'Nama minimal 3 karakter' : null,
+                ),
+              ],
               const SizedBox(height: AppSpacing.md),
               TextFormField(
                 controller: _amountCtrl,
