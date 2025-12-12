@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uas/utils/icon_helper.dart';
 
 class Article {
   final String id;
@@ -21,7 +22,7 @@ class Article {
     required this.colorValue,
   });
 
-  IconData get icon => IconData(iconCode, fontFamily: 'MaterialIcons');
+  IconData get icon => IconHelper.getIcon(iconCode);
   Color get color => Color(colorValue);
 
   static List<Article> get dummyData => [

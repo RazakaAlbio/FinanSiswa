@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:uas/models/transaction.dart';
+import 'package:uas/utils/icon_helper.dart';
 
 class Category {
   final String id;
@@ -16,7 +17,7 @@ class Category {
     required this.colorValue,
   });
 
-  IconData get icon => IconData(iconCode, fontFamily: 'MaterialIcons');
+  IconData get icon => IconHelper.getIcon(iconCode);
   Color get color => Color(colorValue);
 
   Map<String, dynamic> toMap() {

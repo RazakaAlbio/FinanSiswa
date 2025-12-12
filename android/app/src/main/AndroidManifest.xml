@@ -2,7 +2,7 @@
     <!-- Permission for scheduling exact alarms on Android 12+ (API 31+) -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <application
-        android:label="uas"
+        android:label="Finansiswa"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
