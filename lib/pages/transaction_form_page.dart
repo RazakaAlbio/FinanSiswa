@@ -7,6 +7,8 @@ import 'package:uas/models/category.dart';
 import 'package:uas/models/saving_goal.dart';
 import 'package:uas/repositories/category_repository.dart';
 import 'package:uas/repositories/finance_repository.dart';
+import 'package:uas/repositories/budget_repository.dart';
+import 'package:uas/models/budget.dart';
 import 'package:uas/pages/categories_page.dart';
 
 /// Form transaksi dengan validasi input
@@ -20,14 +22,17 @@ class TransactionFormPage extends StatefulWidget {
 class _TransactionFormPageState extends State<TransactionFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _amountCtrl = TextEditingController();
+  final _customCategoryCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
   TransactionType _type = TransactionType.expense;
   String _uiType = 'expense'; // 'income', 'expense', 'savings'
   DateTime _date = DateTime.now();
   List<Category> _categories = [];
   List<SavingGoal> _savingGoals = [];
+  List<Budget> _budgets = [];
   String? _selectedCategoryId;
   int? _selectedSavingGoalId;
+  int? _selectedBudgetId;
 
   @override
   @override
@@ -35,6 +40,13 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
     super.initState();
     _loadCategories();
     _loadSavingGoals();
+    _loadBudgets();
+  }
+
+  Future<void> _loadBudgets() async {
+    final repo = context.read<FinanceRepository>();
+    final items = await repo.listBudgets();
+    setState(() => _budgets = items);
   }
 
   Future<void> _loadCategories() async {
@@ -52,6 +64,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
   @override
   void dispose() {
     _amountCtrl.dispose();
+    _customCategoryCtrl.dispose();
     _noteCtrl.dispose();
     super.dispose();
   }
@@ -92,7 +105,14 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
        Navigator.of(context).pop(txn);
     } else {
       // Normal Transaction
-      final categoryName = _categories.firstWhere((c) => c.id == _selectedCategoryId).name;
+      String categoryName;
+      if (_selectedCategoryId == 'custom') {
+        if (_selectedBudgetId == null) return;
+        categoryName = _budgets.firstWhere((b) => b.id == _selectedBudgetId).name;
+      } else {
+        categoryName = _categories.firstWhere((c) => c.id == _selectedCategoryId).name;
+      }
+
       final txn = FinanceTransaction(
         amount: amount,
         category: categoryName,
@@ -183,27 +203,65 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                 Row(
                   children: [
                     Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedCategoryId,
-                        decoration: const InputDecoration(
-                          labelText: 'Kategori',
-                          border: OutlineInputBorder(),
-                        ),
-                        items: _categories
-                            .where((c) => c.type == _type)
-                            .map((c) => DropdownMenuItem(
-                                  value: c.id,
-                                  child: Row(
-                                    children: [
-                                      Icon(c.icon, size: 18, color: c.color),
-                                      const SizedBox(width: 8),
-                                      Text(c.name),
-                                    ],
-                                  ),
-                                ))
-                            .toList(),
-                        onChanged: (v) => setState(() => _selectedCategoryId = v),
-                        validator: (v) => v == null ? 'Pilih kategori' : null,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          DropdownButtonFormField<String>(
+                            value: _selectedCategoryId,
+                            decoration: const InputDecoration(
+                              labelText: 'Kategori',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: [
+                              ..._categories
+                                  .where((c) => c.type == _type)
+                                  .map((c) => DropdownMenuItem(
+                                        value: c.id,
+                                        child: Row(
+                                          children: [
+                                            Icon(c.icon, size: 18, color: c.color),
+                                            const SizedBox(width: 8),
+                                            Text(c.name),
+                                          ],
+                                        ),
+                                      )),
+                              const DropdownMenuItem(
+                                value: 'custom',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit, size: 18, color: Colors.grey),
+                                    const SizedBox(width: 8),
+                                    Text('Lainnya (Custom)'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            onChanged: (v) => setState(() => _selectedCategoryId = v),
+                            validator: (v) => v == null ? 'Pilih kategori' : null,
+                          ),
+                          if (_selectedCategoryId == 'custom') ...[
+                            const SizedBox(height: 12),
+                            DropdownButtonFormField<int>(
+                              value: _selectedBudgetId,
+                              decoration: const InputDecoration(
+                                labelText: 'Pilih Anggaran (Budget)',
+                                border: OutlineInputBorder(),
+                                helperText: 'Pilih anggaran yang sesuai',
+                              ),
+                              items: _budgets.map((b) => DropdownMenuItem(
+                                value: b.id,
+                                child: Text(b.name),
+                              )).toList(),
+                              onChanged: (v) => setState(() => _selectedBudgetId = v),
+                              validator: (v) {
+                                if (_selectedCategoryId == 'custom' && v == null) {
+                                  return 'Pilih anggaran';
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                     const SizedBox(width: 8),

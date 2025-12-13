@@ -287,7 +287,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 12),
                         SizedBox(
-                          height: 140,
+                          height: 160,
                           child: ListView.builder(
                             scrollDirection: Axis.horizontal,
                             itemCount: _budgets.length,

@@ -68,7 +68,7 @@ class BelajarPage extends StatelessWidget {
                     crossAxisCount: 2,
                     mainAxisSpacing: 16,
                     crossAxisSpacing: 16,
-                    childAspectRatio: 1.0,
+                    childAspectRatio: 0.8,
                     children: [
                       _quickTipCard(
                         context,

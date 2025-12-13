@@ -30,11 +30,21 @@ class BudgetSliderModal extends StatefulWidget {
 
 class _BudgetSliderModalState extends State<BudgetSliderModal> {
   late double _currentValue;
+  late TextEditingController _textController;
 
   @override
   void initState() {
     super.initState();
-    _currentValue = widget.initial;
+    _currentValue = widget.initial < 1 ? 1 : widget.initial; // Ensure min 1
+    _textController = TextEditingController(
+      text: NumberFormat('#,###', 'id_ID').format(_currentValue),
+    );
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
   }
 
   String _formatCurrency(double value) {
@@ -101,12 +111,32 @@ class _BudgetSliderModalState extends State<BudgetSliderModal> {
           ),
           const SizedBox(height: 24),
           Center(
-            child: Text(
-              _formatCurrency(_currentValue),
-              style: GoogleFonts.poppins(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
+            child: Container(
+              width: 200,
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: AppColors.primary, width: 2)),
+              ),
+              child: TextField(
+                controller: _textController,
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  prefixText: 'Rp ',
+                ),
+                onChanged: (value) {
+                  final parsed = double.tryParse(value.replaceAll('.', ''));
+                  if (parsed != null) {
+                    setState(() {
+                      _currentValue = parsed.clamp(widget.min, widget.max);
+                    });
+                  }
+                },
               ),
             ),
           ),
@@ -119,14 +149,15 @@ class _BudgetSliderModalState extends State<BudgetSliderModal> {
               overlayColor: AppColors.primary.withOpacity(0.1),
             ),
             child: Slider(
-              value: _currentValue,
+              value: _currentValue.clamp(widget.min, widget.max),
               min: widget.min,
               max: widget.max,
-              divisions: 100,
+              // divisions removed for single digit precision
               label: _formatCurrency(_currentValue),
               onChanged: (value) {
                 setState(() {
                   _currentValue = value;
+                  _textController.text = NumberFormat('#,###', 'id_ID').format(value);
                 });
               },
             ),
